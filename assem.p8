@@ -3,6 +3,7 @@
 %import diskio
 %import string
 %import test_stack
+%import asmsymbols
 %zeropage basicsafe
 %option no_sysinit
 
@@ -626,17 +627,6 @@ _is_2_entry
         }
         @(dest)=0
         void string.copy(input_line2, src)
-    }
-}
-
-
-symbols {
-    sub setvalue(uword symbolname_ptr, uword value) {
-        txt.print("symbol: ")
-        txt.print(symbolname_ptr)
-        txt.chrout('=')
-        txt.print_uwhex(value, true)
-        txt.nl()
     }
 }
 
