@@ -14,7 +14,7 @@ main {
 
         symbols.init()
 
-        txt.print("\ncommander-x16 65c02 file based assembler. work in progess.\nenter filename, $ for list of *.asm files, or just enter for interactive: ")
+        txt.print("\ncommander-x16 65c02 file based assembler. work in progress.\nenter filename, $ for list of *.asm files, or just enter for interactive: ")
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
