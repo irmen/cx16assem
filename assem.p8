@@ -12,6 +12,8 @@ main {
     sub start() {
         str filename = "?" * 20
 
+        symbols.init()
+
         txt.print("\ncommander-x16 65c02 file based assembler. work in progess.\nenter filename, $ for list of *.asm files, or just enter for interactive: ")
         repeat {
             txt.print("\n> ")
@@ -28,6 +30,16 @@ main {
                 user_input()
                 break
             }
+        }
+
+        symbols.dump()
+
+        ; test of retrieving symbol
+        if(symbols.getvalue("message")) {
+            txt.print("value of message=")
+            txt.print_uwhex(cx16.r0, true)
+        } else {
+            txt.print("message not defined\n")
         }
 
         cx16.rombank(4)     ; switch back to basic rom
@@ -47,7 +59,7 @@ main {
         }
         txt.print(diskio.status(8))
     }
-    
+
     sub user_input() {
         txt.lowercase()
         txt.print("Interactive mode. Type assembly instructions, empty line to stop.\n")
@@ -208,7 +220,9 @@ parser {
                 if program_counter>pc_max
                     pc_max = program_counter
             } else {
-                symbols.setvalue(word_addrs[0], cx16.r15)
+                ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, symbols.dt_uword)
+                if not symbol_idx
+                    return false
             }
             return true
         }
@@ -249,7 +263,9 @@ parser {
                 txt.print("?label cannot be a mnemonic\n")
                 return false
             }
-            symbols.setvalue(label_ptr, program_counter)
+            ubyte symbol_idx = symbols.setvalue(label_ptr, program_counter, symbols.dt_uword)
+            if not symbol_idx
+                return false
         }
         if instr_ptr {
             if @(instr_ptr)=='.'
@@ -740,7 +756,7 @@ _valid      sec
     }
 
     ; The actual mnemonic matching routine is automatically generated
-    ; from a table of mnemonics. 
+    ; from a table of mnemonics.
     ; Currently this is a prefix-tree matching routine that expects
     ; the three letters of the mnemonic to be in registers A,X,Y
     ; which covers most of the instructions (only a few have 4 letters)
