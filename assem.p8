@@ -34,14 +34,6 @@ main {
 
         symbols.dump()
 
-        ; test of retrieving symbol
-        if(symbols.getvalue("message")) {
-            txt.print("value of message=")
-            txt.print_uwhex(cx16.r0, true)
-        } else {
-            txt.print("message not defined\n")
-        }
-
         cx16.rombank(4)     ; switch back to basic rom
         test_stack.test()
     }
@@ -206,7 +198,7 @@ parser {
             valid_operand = true
         } else {
             ubyte nlen = conv.any2uword(word_addrs[2])
-            valid_operand = nlen and @(word_addrs[2]+nlen)==0
+            valid_operand = nlen!=0 and @(word_addrs[2]+nlen)==0
         }
 
         if valid_operand {
@@ -226,7 +218,7 @@ parser {
             }
             return true
         }
-        txt.print("?invalid operand\n")
+        txt.print("?invalid operand in assign\n")
         return false
     }
 
@@ -335,11 +327,18 @@ parser {
                             program_counter--
                             cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
                         } else {
-                            txt.print("?invalid operand\n")
+                            if cx16.r15 {
+                                ; TODO handle symbol reference
+                                txt.print("?TODO operand is a symbol: ")
+                                txt.print(comma)
+                                txt.nl()
+                                return false
+                            }
+                            txt.print("?invalid operand for zpr\n")
                             return false
                         }
                     } else {
-                        txt.print("?invalid operand\n")
+                        txt.print("?invalid operand for zpr\n")
                         return false
                     }
                 }
@@ -361,6 +360,15 @@ parser {
                     txt.nl()
                 return true
             }
+
+            if cx16.r15 {
+                ; TODO handle symbol reference
+                txt.print("?TODO operand is a symbol: ")
+                txt.print(operand_ptr)
+                txt.nl()
+                return false
+            }
+
             txt.print("?invalid operand\n")
             return false
         }
@@ -385,6 +393,7 @@ parser {
     sub parse_operand(uword operand_ptr) -> ubyte {
         ; parses the operand. Returns 2 things:
         ; - addressing mode id as result value or 0 (am_Invalid) when error
+        ;      in that case, cx16.r15 will be 1 if the operand is a valid symbol or 0 if it is not.
         ; - operand numeric value in cx16.r15 (if applicable)
 
         ubyte @zp firstchr = @(operand_ptr)
@@ -404,11 +413,6 @@ parser {
             'a' -> {
                 if not @(operand_ptr+1)
                     return instructions.am_Acc      ; Accumulator - no value.
-
-                ; TODO its a symbol/label, immediate or indexed addressing
-                txt.print("TODO symbol: ")
-                txt.print(operand_ptr)
-                txt.nl()
             }
             '(' -> {
                 ; various forms of indirect
@@ -462,7 +466,32 @@ parser {
                 }
             }
         }
+
+        cx16.r15 = false
+        if is_symbol_start_char(firstchr) {
+            while firstchr {
+                if not is_symbol_char(firstchr)
+                    return instructions.am_Invalid
+                operand_ptr++
+                firstchr = @(operand_ptr)
+            }
+            cx16.r15 = true     ; it's a valid symbol
+        }
+
         return instructions.am_Invalid
+    }
+
+    sub is_symbol_start_char(ubyte chr) -> ubyte {
+        ; note: chr is already lowercased
+        if chr>='a' and chr <= 'z'
+            return true
+        return chr=='.' or chr=='@'
+    }
+
+    sub is_symbol_char(ubyte chr) -> ubyte {
+        if chr>='0' and chr <= '9'
+            return true
+        return is_symbol_start_char(chr)
     }
 
     sub process_assembler_directive(uword directive, uword operand) -> ubyte {

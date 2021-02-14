@@ -3,7 +3,7 @@
 all:  opcodes.asm experiment/perfecthashmnem.c assem.prg
 
 clean:
-	rm assem.prg assem.asm opcodes.asm *.vice-* experiment/perfecthashmnem.c
+	rm -f assem.prg assem.asm opcodes.asm *.vice-* experiment/perfecthashmnem.c
 
 emu:  assem.prg
 	x16emu -sdcard ~/cx16sdcard.img -scale 2 -run -prg $<

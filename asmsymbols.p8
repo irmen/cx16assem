@@ -3,15 +3,18 @@
 ; humble beginnings of dealing with the symbol table
 ; restrictions for now:
 ; max 128 symbols
-; max symbol name length 15 characters
-; (resulting in a symbol table of 2 Kb for now, but 16 kb when we want to allow 1000 symbols)
+; max symbol name length 31 characters
+; (resulting in a symbol table of 4 Kb for now)
 ; datatype unsigned byte 0-255 or unsigned word 0-65535
 ; braindead symbol lookup (linear scan)
 
 symbols {
-    uword[128] symbolptrs = 0
-    uword[128] values
-    ubyte[128] datatypes = 0
+    const ubyte max_entries = 128
+    const ubyte max_name_len = 31       ; excluding the terminating 0
+
+    uword[max_entries] symbolptrs = 0
+    uword[max_entries] values
+    ubyte[max_entries] datatypes = 0
     uword namebuffer
     ubyte num_symbols
 
@@ -19,12 +22,12 @@ symbols {
     const ubyte dt_uword = 2
 
     sub init() {
-        namebuffer = memory("symbolnames", 16*len(symbolptrs))
+        namebuffer = memory("symbolnames", (max_name_len+1)*len(symbolptrs))
         num_symbols = 0
     }
 
     sub setvalue(uword symbolname_ptr, uword value, ubyte datatype) -> ubyte {
-        if num_symbols>=128 {
+        if num_symbols>=max_entries {
             txt.print("\n?symbol table full\n")
             return 0
         }
