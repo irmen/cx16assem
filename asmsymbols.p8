@@ -43,7 +43,7 @@ symbols {
         ; -- returns success. The value will be in cx16.r0, the datatype in cx16.r1
         ;    TODO more efficient lookup
         ubyte ix
-        for ix in 0 to num_symbols-1 {
+        for ix in num_symbols-1 downto 0 {
             if string.compare(symbolname_ptr, symbolptrs[ix]) == 0 {
                 cx16.r0 = values[ix]
                 cx16.r1 = datatypes[ix]
@@ -59,15 +59,15 @@ symbols {
         txt.print(" entries:\n")
         if num_symbols {
             ubyte ix
-            for ix in 0 to num_symbols-1 {
+            for ix in num_symbols-1 downto 0 {
                 txt.print("  ")
-                txt.print(symbolptrs[ix])
-                txt.chrout('=')
                 if datatypes[ix]==dt_ubyte
                     txt.print_ubhex(lsb(values[ix]), true)
                 else
                     txt.print_uwhex(values[ix], true)
-                txt.chrout('\n')
+                txt.print(" = ")
+                txt.print(symbolptrs[ix])
+                txt.nl()
             }
         }
     }

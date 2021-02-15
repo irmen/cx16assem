@@ -2,7 +2,6 @@
 %import textio
 %import diskio
 %import string
-%import test_stack
 %import asmsymbols
 %zeropage basicsafe
 %option no_sysinit
@@ -14,11 +13,11 @@ main {
 
         symbols.init()
 
-        txt.print("\ncommander-x16 65c02 file based assembler. work in progress.\nenter filename, $ for list of *.asm files, or just enter for interactive: ")
+        txt.print("\ncommander-x16 65c02 file based assembler. >>work in progress<<\n\nenter filename, $ for list of *.asm files, or just enter for interactive: ")
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
-                txt.chrout('\n')
+                txt.print("\n\n")
                 if filename[0]=='$' {
                     list_asm_files()
                 } else {
@@ -33,9 +32,6 @@ main {
         }
 
         symbols.dump()
-
-        cx16.rombank(4)     ; switch back to basic rom
-        test_stack.test()
     }
 
     sub list_asm_files() {
@@ -49,6 +45,7 @@ main {
             diskio.lf_end_list()
             return
         }
+        txt.nl()
         txt.print(diskio.status(8))
     }
 
@@ -57,6 +54,7 @@ main {
         txt.print("Interactive mode. Type assembly instructions, empty line to stop.\n")
         parser.print_emit_bytes = true
         parser.program_counter = $4000
+        parser.phase = 2
         repeat {
             ubyte input_length = 0
             txt.chrout('A')
@@ -80,17 +78,35 @@ main {
     }
 
     sub file_input(uword filename) {
-        parser.print_emit_bytes = false
-        ubyte success = false
-
         txt.print("reading ")
         txt.print(filename)
-        txt.spc()
-
+        txt.nl()
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
+        c64.SETTIM(0,0,0)
+        parser.print_emit_bytes = false
+        parser.phase = 1
+        txt.print("\nphase 1")
+        ubyte success = parse_file(filename)
+        if success {
+            txt.print("\n (")
+            txt.print_ub(symbols.num_symbols)
+            txt.print(" symbols)\nphase 2")
+            parser.phase = 2
+            success = parse_file(filename)
+        }
+        parser.done()
+        cx16.rombank(4)     ; switch back to basic rom
+
+        if success
+            print_summary(cx16.r15, parser.pc_min, parser.pc_max)
+    }
+
+    sub parse_file(uword filename) -> ubyte {
+        ; returns success status, and last processed line number in cx16.r15
+        ubyte success = false
+        cx16.r15 = 0
 
         if diskio.f_open(8, filename) {
-            c64.SETTIM(0,0,0)
             uword line=0
             repeat {
                 void diskio.f_readline(parser.input_line)
@@ -126,12 +142,14 @@ main {
             }
             diskio.f_close()
             parser.done()
+            cx16.r15 = line
 
-            if success
-                print_summary(line, parser.pc_min, parser.pc_max)
         } else {
+            txt.nl()
             txt.print(diskio.status(8))
         }
+
+        return success
     }
 
     sub print_summary(uword lines, uword start_address, uword end_address) {
@@ -139,10 +157,12 @@ main {
         txt.print_uwhex(start_address, 1)
         txt.print("\n  end address: ")
         txt.print_uwhex(end_address, 1)
-        txt.print("\n        lines: ")
+        txt.print(" (")
+        txt.print_uw(end_address-start_address)
+        txt.print(" bytes)\n source lines: ")
         txt.print_uw(lines)
 
-        txt.print("\n   time (sec): ")
+        txt.print("\n  time (sec.): ")
         uword current_time = c64.RDTIM16()
         uword secs = current_time / 60
         current_time = (current_time - secs*60)*1000/60
@@ -167,6 +187,7 @@ parser {
     ubyte print_emit_bytes
     uword pc_min = $ffff
     uword pc_max = $0000
+    ubyte phase             ; 1 = scan symbols, 2 = generate machine code
 
     sub process_line() -> ubyte {
         string.lower(input_line)
@@ -204,14 +225,11 @@ parser {
         if valid_operand {
             if string.compare(word_addrs[0], "*")==0 {
                 program_counter = cx16.r15
-                txt.print("\n* = ")
-                txt.print_uwhex(program_counter, true)
-                txt.nl()
                 if program_counter<pc_min
                     pc_min = program_counter
                 if program_counter>pc_max
                     pc_max = program_counter
-            } else {
+            } else if phase==1 {
                 ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, symbols.dt_uword)
                 if not symbol_idx
                     return false
@@ -255,9 +273,11 @@ parser {
                 txt.print("?label cannot be a mnemonic\n")
                 return false
             }
-            ubyte symbol_idx = symbols.setvalue(label_ptr, program_counter, symbols.dt_uword)
-            if not symbol_idx
-                return false
+            if phase==1 {
+                ubyte symbol_idx = symbols.setvalue(label_ptr, program_counter, symbols.dt_uword)
+                if not symbol_idx
+                    return false
+            }
         }
         if instr_ptr {
             if @(instr_ptr)=='.'
@@ -342,15 +362,27 @@ parser {
                     txt.print_uwhex(program_counter, 1)
                     txt.print("   ")
                 }
-                emit(opcode)
-                if num_operand_bytes==1 {
-                    emit(lsb(cx16.r15))
-                } else if num_operand_bytes == 2 {
-                    emit(lsb(cx16.r15))
-                    emit(msb(cx16.r15))
+                when phase {
+                    1 -> {
+                        program_counter++
+                        program_counter += num_operand_bytes
+                    }
+                    2 -> {
+                        emit_2(opcode)
+                        if num_operand_bytes==1 {
+                            emit_2(lsb(cx16.r15))
+                        } else if num_operand_bytes == 2 {
+                            emit_2(lsb(cx16.r15))
+                            emit_2(msb(cx16.r15))
+                        }
+                        if print_emit_bytes
+                            txt.nl()
+                    }
+                    else -> {
+                        txt.print("?invalid phase\n")
+                        return false
+                    }
                 }
-                if print_emit_bytes
-                    txt.nl()
                 return true
             }
             txt.print("?invalid operand\n")
@@ -473,19 +505,40 @@ parser {
                 operand_ptr++
                 firstchr = @(operand_ptr)
             }
-            ; TODO PROCESS SYMBOL
+            ; Process symbol.
             ;  if it's defined: substitute the value
             ;  if it's not defined: error (if in phase 2) or skip (if in phase 1)
-            txt.print("operand is symbol: ")
-            txt.print(sym_ptr)
             if symbols.getvalue(sym_ptr) {
-                txt.print("\n value: ")
+                cx16.r15 = cx16.r0
+                if lsb(cx16.r1)==symbols.dt_ubyte {
+                    ; TODO determine addressing mode! Zp, ZpX, ZpY
+                    return instructions.am_Zp
+                }
+                if lsb(cx16.r1)==symbols.dt_uword {
+                    ; TODO determine addressing mode! Abs, AbsX, AbsY
+                    return instructions.am_Abs
+                }
+                txt.print("\n?invalid symbol datatype\n")
+                return instructions.am_Invalid
+                txt.print("operand is symbol: ")
+                txt.print(sym_ptr)
+                txt.print(" = ")
                 txt.print_uwhex(cx16.r0, true)
                 txt.print("   type: ")
                 txt.print_ub(lsb(cx16.r1))
                 txt.nl()
             } else {
-                txt.print("\n?undefined symbol\n")
+                if phase==1 {
+                    ; skip the symbol
+                    ; TODO determine addressing mode! Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
+                    return instructions.am_Abs
+                }
+                if phase==2 {
+                    txt.print("\n?undefined symbol: ")
+                    txt.print(sym_ptr)
+                    txt.nl()
+                    return instructions.am_Invalid
+                }
             }
             return instructions.am_Invalid
         }
@@ -522,7 +575,10 @@ parser {
                         txt.print_uwhex(program_counter, 1)
                         txt.print("   ")
                     }
-                    emit(lsb(cx16.r15))
+                    if phase==2
+                        emit_2(lsb(cx16.r15))
+                    else
+                        program_counter++
                     operand += length
                     while @(operand)==',' {
                         operand++
@@ -533,7 +589,10 @@ parser {
                             txt.print("?byte value too large\n")
                             return false
                         }
-                        emit(lsb(cx16.r15))
+                        if phase==2
+                            emit_2(lsb(cx16.r15))
+                        else
+                            program_counter++
                         operand += length
                     }
                     if print_emit_bytes
@@ -595,7 +654,7 @@ _is_2_entry
         }}
     }
 
-    sub emit(ubyte value) {
+    sub emit_2(ubyte value) {
         @(program_counter) = value
         program_counter++
 
