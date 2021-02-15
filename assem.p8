@@ -465,13 +465,6 @@ parser {
 
         ; if we end up here, it wasn't a recognisable numeric operand.
         ; so it must be a symbol, and the addressing mode is Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
-        txt.print("\nsymptr=")
-        txt.print_uwhex(sym_ptr, true)
-        txt.nl()
-        txt.print("\nsym=")
-        txt.print(sym_ptr)
-        txt.nl()
-
         operand_ptr = sym_ptr
         if is_symbol_start_char(firstchr) {
             while firstchr {
@@ -481,9 +474,19 @@ parser {
                 firstchr = @(operand_ptr)
             }
             ; TODO PROCESS SYMBOL
+            ;  if it's defined: substitute the value
+            ;  if it's not defined: error (if in phase 2) or skip (if in phase 1)
             txt.print("operand is symbol: ")
             txt.print(sym_ptr)
-            txt.nl()
+            if symbols.getvalue(sym_ptr) {
+                txt.print("\n value: ")
+                txt.print_uwhex(cx16.r0, true)
+                txt.print("   type: ")
+                txt.print_ub(lsb(cx16.r1))
+                txt.nl()
+            } else {
+                txt.print("\n?undefined symbol\n")
+            }
             return instructions.am_Invalid
         }
 
