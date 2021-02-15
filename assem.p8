@@ -327,13 +327,6 @@ parser {
                             program_counter--
                             cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
                         } else {
-                            if cx16.r15 {
-                                ; TODO handle symbol reference
-                                txt.print("?TODO operand is a symbol: ")
-                                txt.print(comma)
-                                txt.nl()
-                                return false
-                            }
                             txt.print("?invalid operand for zpr\n")
                             return false
                         }
@@ -360,15 +353,6 @@ parser {
                     txt.nl()
                 return true
             }
-
-            if cx16.r15 {
-                ; TODO handle symbol reference
-                txt.print("?TODO operand is a symbol: ")
-                txt.print(operand_ptr)
-                txt.nl()
-                return false
-            }
-
             txt.print("?invalid operand\n")
             return false
         }
@@ -393,9 +377,9 @@ parser {
     sub parse_operand(uword operand_ptr) -> ubyte {
         ; parses the operand. Returns 2 things:
         ; - addressing mode id as result value or 0 (am_Invalid) when error
-        ;      in that case, cx16.r15 will be 1 if the operand is a valid symbol or 0 if it is not.
         ; - operand numeric value in cx16.r15 (if applicable)
 
+        uword sym_ptr
         ubyte @zp firstchr = @(operand_ptr)
         ubyte parsed_len
         when firstchr {
@@ -408,11 +392,17 @@ parser {
                     operand_ptr += parsed_len
                     if @(operand_ptr)==0
                         return instructions.am_Imm
+                } else {
+                    ; TODO deal with #symbol
+                    txt.print("\ntodo #symbol\n")
                 }
+                return instructions.am_Invalid
             }
             'a' -> {
                 if not @(operand_ptr+1)
                     return instructions.am_Acc      ; Accumulator - no value.
+                sym_ptr = operand_ptr
+                ; fall through to deal with a symbol as an operand (absolute address)
             }
             '(' -> {
                 ; various forms of indirect
@@ -435,7 +425,11 @@ parser {
                         if str_is3(operand_ptr, "),y")
                             return instructions.am_IzY
                     }
+                } else {
+                    ; TODO deal with (symbol)
+                    txt.print("\ntodo (symbol)\n")
                 }
+                return instructions.am_Invalid
             }
             '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
                 ; address optionally followed by ,x or ,y or ,address
@@ -443,7 +437,7 @@ parser {
                 if parsed_len {
                     operand_ptr += parsed_len
                     if msb(cx16.r15) {
-                        ; absolute or abs indirects
+                        ; word value, so absolute or abs indirects
                         if @(operand_ptr)==0
                             return instructions.am_Abs
                         if str_is2(operand_ptr, ",x")
@@ -451,7 +445,7 @@ parser {
                         if str_is2(operand_ptr, ",y")
                             return instructions.am_AbsY
                     } else {
-                        ; zero page or zp indirects
+                        ; byte value, so zero page or zp indirects
                         if @(operand_ptr)==0
                             return instructions.am_Zp
                         if str_is2(operand_ptr, ",x")
@@ -464,10 +458,21 @@ parser {
                         }
                     }
                 }
+                return instructions.am_Invalid
             }
+            else -> sym_ptr = operand_ptr
         }
 
-        cx16.r15 = false
+        ; if we end up here, it wasn't a recognisable numeric operand.
+        ; so it must be a symbol, and the addressing mode is Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
+        txt.print("\nsymptr=")
+        txt.print_uwhex(sym_ptr, true)
+        txt.nl()
+        txt.print("\nsym=")
+        txt.print(sym_ptr)
+        txt.nl()
+
+        operand_ptr = sym_ptr
         if is_symbol_start_char(firstchr) {
             while firstchr {
                 if not is_symbol_char(firstchr)
@@ -475,7 +480,11 @@ parser {
                 operand_ptr++
                 firstchr = @(operand_ptr)
             }
-            cx16.r15 = true     ; it's a valid symbol
+            ; TODO PROCESS SYMBOL
+            txt.print("operand is symbol: ")
+            txt.print(sym_ptr)
+            txt.nl()
+            return instructions.am_Invalid
         }
 
         return instructions.am_Invalid
