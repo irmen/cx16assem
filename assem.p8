@@ -88,7 +88,7 @@ main {
         txt.print("\nphase 1")
         ubyte success = parse_file(filename)
         if success {
-            txt.print("\n (")
+            txt.print(" (")
             txt.print_ub(symbols.num_symbols)
             txt.print(" symbols)\nphase 2")
             parser.phase = 2
@@ -230,7 +230,10 @@ parser {
                 if program_counter>pc_max
                     pc_max = program_counter
             } else if phase==1 {
-                ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, symbols.dt_uword)
+                ubyte dt = symbols.dt_ubyte
+                if msb(cx16.r15)
+                    dt = symbols.dt_uword
+                ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, dt)
                 if not symbol_idx
                     return false
             }
@@ -295,10 +298,12 @@ parser {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
             ubyte addr_mode = parse_operand(operand_ptr)
 
+            ; TODO don't push it to find the correct opcode and branch Rel opcode if phase==1.
+
             if addr_mode {
                 ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
                 if_cc {
-                    ; most likely an invalid instruction BUT could also be a branchin instruction
+                    ; most likely an invalid instruction BUT could also be a branching instruction
                     ; that needs its "absolute" operand recalculated as relative.
                     ubyte retry = false
                     when addr_mode {
@@ -518,19 +523,13 @@ parser {
                     ; TODO determine addressing mode! Abs, AbsX, AbsY
                     return instructions.am_Abs
                 }
-                txt.print("\n?invalid symbol datatype\n")
+                txt.print("?invalid symbol datatype\n")
                 return instructions.am_Invalid
-                txt.print("operand is symbol: ")
-                txt.print(sym_ptr)
-                txt.print(" = ")
-                txt.print_uwhex(cx16.r0, true)
-                txt.print("   type: ")
-                txt.print_ub(lsb(cx16.r1))
-                txt.nl()
             } else {
                 if phase==1 {
                     ; skip the symbol
                     ; TODO determine addressing mode! Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
+                    cx16.r15 = program_counter  ; to avoid branch Rel errors
                     return instructions.am_Abs
                 }
                 if phase==2 {

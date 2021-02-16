@@ -41,7 +41,7 @@ symbols {
 
     sub getvalue(uword symbolname_ptr) -> ubyte {
         ; -- returns success. The value will be in cx16.r0, the datatype in cx16.r1
-        ;    TODO more efficient lookup
+        ;    TODO more efficient lookup rather than linear scan
         ubyte ix
         for ix in num_symbols-1 downto 0 {
             if string.compare(symbolname_ptr, symbolptrs[ix]) == 0 {
@@ -61,8 +61,10 @@ symbols {
             ubyte ix
             for ix in num_symbols-1 downto 0 {
                 txt.print("  ")
-                if datatypes[ix]==dt_ubyte
+                if datatypes[ix]==dt_ubyte {
+                    txt.print("  ")
                     txt.print_ubhex(lsb(values[ix]), true)
+                }
                 else
                     txt.print_uwhex(values[ix], true)
                 txt.print(" = ")
