@@ -424,14 +424,35 @@ parser {
             '#' -> {
                 ; lda #$99   Immediate
                 operand_ptr++
+                ubyte lsbmsb = @(operand_ptr)
+                if lsbmsb=='<' or lsbmsb=='>' {
+                    operand_ptr++
+                } else {
+                    lsbmsb = 0
+                }
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
                     operand_ptr += parsed_len
-                    if @(operand_ptr)==0
+                    if @(operand_ptr)==0 {
+                        if lsbmsb=='>'
+                            cx16.r15 = msb(cx16.r15)
                         return instructions.am_Imm
+                    }
                 } else {
-                    ; TODO deal with #symbol
-                    txt.print("\ntodo #symbol\n")
+                    if phase==2 {
+                        ; retrieve symbol value
+                        if symbols.getvalue(operand_ptr) {
+                            cx16.r1 = symbols.dt_ubyte
+                            if lsbmsb=='>'
+                                cx16.r15 = msb(cx16.r0)
+                            else
+                                cx16.r15 = lsb(cx16.r0)
+                        } else {
+                            err_undefined_symbol(operand_ptr)
+                            return instructions.am_Invalid
+                        }
+                    }
+                    return instructions.am_Imm
                 }
                 return instructions.am_Invalid
             }
@@ -533,9 +554,7 @@ parser {
                     return instructions.am_Abs
                 }
                 if phase==2 {
-                    txt.print("\n?undefined symbol: ")
-                    txt.print(sym_ptr)
-                    txt.nl()
+                    err_undefined_symbol(sym_ptr)
                     return instructions.am_Invalid
                 }
             }
@@ -543,6 +562,12 @@ parser {
         }
 
         return instructions.am_Invalid
+    }
+
+    sub err_undefined_symbol(uword symbol) {
+        txt.print("\n?undefined symbol: ")
+        txt.print(symbol)
+        txt.nl()
     }
 
     sub is_symbol_start_char(ubyte chr) -> ubyte {
