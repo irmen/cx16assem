@@ -13,16 +13,25 @@ main {
 
         symbols.init()
 
-        txt.print("\ncommander-x16 65c02 file based assembler. >>work in progress<<\n\nenter filename, $ for list of *.asm files, or just enter for interactive: ")
+        txt.print("\ncommander-x16 65c02 file based assembler. >>work in progress<<\nhttps://github.com/irmen/cx16assem\n\n")
+        txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file, or just enter for interactive: ")
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
                 txt.print("\n\n")
-                if filename[0]=='$' {
-                    list_asm_files()
-                } else {
-                    file_input(filename)
-                    break
+                when filename[0] {
+                    '$' -> list_asm_files()
+                    '!' -> {
+                        if filename[1]
+                            display_file(&filename+1)
+                    }
+                    '*', ':' -> {
+                        ; avoid loading the first file on the disk
+                    }
+                    else -> {
+                        file_input(filename)
+                        break
+                    }
                 }
             }
             else {
@@ -49,12 +58,44 @@ main {
         txt.print(diskio.status(8))
     }
 
+    sub display_file(uword filename) {
+        txt.print("displaying ")
+        txt.print(filename)
+        txt.nl()
+        cx16.rombank(0)     ; switch to kernal rom for faster file i/o
+        ubyte success = false
+        if diskio.f_open(8, filename) {
+            uword line = 0
+            repeat {
+                void diskio.f_readline(parser.input_line)
+                line++
+                txt.print_uw(line)
+                txt.column(5)
+                txt.print(": ")
+                txt.print(parser.input_line)
+                txt.nl()
+                if c64.READST() {
+                    success = c64.READST()&64==64       ; end of file?
+                    break
+                }
+                if c64.STOP2() {
+                    txt.print("?break\n")
+                    break
+                }
+            }
+            diskio.f_close()
+        } else {
+            txt.print(diskio.status(8))
+        }
+        cx16.rombank(4)     ; switch back to basic rom
+    }
+
     sub user_input() {
         txt.lowercase()
-        txt.print("Interactive mode. Type assembly instructions, empty line to stop.\n")
-        parser.print_emit_bytes = true
+        txt.print("\nInteractive mode. Type assembly instructions, empty line to stop.\n")
         parser.program_counter = $4000
-        parser.phase = 2
+        parser.start_phase(2, true)
+        txt.nl()
         repeat {
             ubyte input_length = 0
             txt.chrout('A')
@@ -83,15 +124,13 @@ main {
         txt.nl()
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
         c64.SETTIM(0,0,0)
-        parser.print_emit_bytes = false
-        parser.phase = 1
-        txt.print("\nphase 1")
+        parser.start_phase(1, false)
         ubyte success = parse_file(filename)
         if success {
             txt.print(" (")
             txt.print_ub(symbols.num_symbols)
-            txt.print(" symbols)\nphase 2")
-            parser.phase = 2
+            txt.print(" symbols)\n")
+            parser.start_phase(2, false)
             success = parse_file(filename)
         }
         parser.done()
@@ -180,14 +219,23 @@ main {
 parser {
     ; byte counts per address mode id:
     ubyte[17] operand_size = [$ff, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 2]
+    const ubyte max_line_length = 160
 
-    str input_line = "?" * 160
+    str input_line = "?" * max_line_length
     uword[3] word_addrs
     uword program_counter = $ffff
     ubyte print_emit_bytes
     uword pc_min = $ffff
     uword pc_max = $0000
     ubyte phase             ; 1 = scan symbols, 2 = generate machine code
+
+    sub start_phase(ubyte ph, ubyte print) {
+        phase = ph
+        print_emit_bytes = print
+        input_line[0] = 0
+        txt.print("phase ")
+        txt.print_ub(phase)
+    }
 
     sub process_line() -> ubyte {
         string.lower(input_line)
@@ -197,7 +245,7 @@ parser {
         if word_addrs[1] and @(word_addrs[1])=='='
             return do_assign()
         else
-            return do_label_andor_instr()
+            return do_label_instr()
 
         return false
     }
@@ -223,7 +271,7 @@ parser {
         }
 
         if valid_operand {
-            if string.compare(word_addrs[0], "*")==0 {
+            if str_is1(word_addrs[0], '*') {
                 program_counter = cx16.r15
                 if program_counter<pc_min
                     pc_min = program_counter
@@ -243,7 +291,7 @@ parser {
         return false
     }
 
-    sub do_label_andor_instr() -> ubyte {
+    sub do_label_instr() -> ubyte {
         uword label_ptr = 0
         uword instr_ptr = 0
         uword operand_ptr = 0
@@ -688,12 +736,6 @@ _is_2_entry
         }
     }
 
-    sub dummy(uword operand_ptr) -> uword {
-        uword a1=rndw()
-        uword a6=a1+operand_ptr
-        return a6
-    }
-
     sub split_input() {
         ; first strip the input string of extra whitespace and comments
         ubyte copying_word = false
@@ -750,7 +792,7 @@ _is_2_entry
             return
 
         ; split the line around the '='
-        str input_line2 = "?" * 40
+        str input_line2 = "?" * max_line_length
         uword src = &input_line
         uword dest = &input_line2
         ubyte @zp cc

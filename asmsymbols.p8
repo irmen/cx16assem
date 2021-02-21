@@ -12,9 +12,9 @@ symbols {
     const ubyte max_entries = 128
     const ubyte max_name_len = 31       ; excluding the terminating 0
 
-    uword[max_entries] symbolptrs = 0
+    uword[max_entries] symbolptrs
     uword[max_entries] values
-    ubyte[max_entries] datatypes = 0
+    ubyte[max_entries] datatypes
     uword namebuffer
     ubyte num_symbols
 
@@ -29,6 +29,10 @@ symbols {
     sub setvalue(uword symbolname_ptr, uword value, ubyte datatype) -> ubyte {
         if num_symbols>=max_entries {
             txt.print("\n?symbol table full\n")
+            return 0
+        }
+        if getvalue(symbolname_ptr) {
+            txt.print("\n?symbol already defined\n")
             return 0
         }
         symbolptrs[num_symbols] = namebuffer
