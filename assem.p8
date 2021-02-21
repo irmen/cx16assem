@@ -575,7 +575,7 @@ parser {
         if is_symbol_start_char(firstchr) {
             while firstchr {
                 if not is_symbol_char(firstchr)
-                    return instructions.am_Invalid
+                    return instructions.am_Invalid      ; must be a valid symbol name for the rest of the line
                 operand_ptr++
                 firstchr = @(operand_ptr)
             }
