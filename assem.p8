@@ -14,7 +14,7 @@ main {
         symbols.init()
 
         txt.print("\ncommander-x16 65c02 file based assembler. >>work in progress<<\nhttps://github.com/irmen/cx16assem\n\n")
-        txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file: ")
+        txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file, q to quit: ")
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
@@ -28,6 +28,7 @@ main {
                     '*', ':' -> {
                         ; avoid loading the first file on the disk
                     }
+                    'q' -> return
                     else -> {
                         file_input(filename)
                         break
@@ -483,22 +484,7 @@ parser {
                 operand_ptr++
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
-                    operand_ptr+=parsed_len
-                    if msb(cx16.r15) {
-                        ; absolute indirects
-                        if str_is1(operand_ptr, ')')
-                            return instructions.am_Ind
-                        if str_is3(operand_ptr, ",x)")
-                            return instructions.am_IaX
-                    } else {
-                        ; zero page indirects
-                        if str_is1(operand_ptr, ')')
-                            return instructions.am_Izp
-                        if str_is3(operand_ptr, ",x)")
-                            return instructions.am_IzX
-                        if str_is3(operand_ptr, "),y")
-                            return instructions.am_IzY
-                    }
+                    return operand_determine_indirect_addrmode(operand_ptr+parsed_len)
                 } else {
                     sym_ptr = operand_ptr
                     parsed_len = 0
@@ -507,13 +493,8 @@ parser {
                         parsed_len++
                     }
                     if symbols.getvalue2(sym_ptr, parsed_len) {
-                        ; TODO deal with (symbol)
-                        txt.print("\ntodo (symbol): ")
-                        txt.print(sym_ptr)
-                        txt.chrout('=')
-                        txt.print_uwhex(cx16.r0, true)
-                        txt.nl()
-                        return instructions.am_Invalid  ; TODO determine correct addressing mode
+                        cx16.r15 = cx16.r0
+                        return operand_determine_indirect_addrmode(operand_ptr)
                     } else {
                         err_undefined_symbol(sym_ptr)
                     }
@@ -590,6 +571,26 @@ parser {
                 }
             }
             return instructions.am_Invalid
+        }
+
+        return instructions.am_Invalid
+    }
+
+    sub operand_determine_indirect_addrmode(uword operand_ptr) -> ubyte {
+        if msb(cx16.r15) {
+            ; absolute indirects
+            if str_is1(operand_ptr, ')')
+                return instructions.am_Ind
+            if str_is3(operand_ptr, ",x)")
+                return instructions.am_IaX
+        } else {
+            ; zero page indirects
+            if str_is1(operand_ptr, ')')
+                return instructions.am_Izp
+            if str_is3(operand_ptr, ",x)")
+                return instructions.am_IzX
+            if str_is3(operand_ptr, "),y")
+                return instructions.am_IzY
         }
 
         return instructions.am_Invalid
