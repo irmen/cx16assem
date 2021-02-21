@@ -17,3 +17,24 @@ it's just easier to use the supplied Makefile:
 Just type 'make'.
 
 Type 'make emu' to immediately boot the assembler in the Commander X16 emulator.
+
+
+Todo
+----
+
+- fix remaining addressing modes when using symbols
+
+- optimize phase 1, it now does too many things double that are only needed in phase 2
+
+- improve symbol table: more entries, faster symbol search
+
+- cache the source file in memory to avoid the need to reload it in phase 2
+  (this is pretty hard to do unless the source file fits in memory)
+
+Maybe some day:
+
+- relative labels (+ / -)
+  
+- simple expressions
+
+- macros
