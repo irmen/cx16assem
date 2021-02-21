@@ -93,13 +93,13 @@ main {
         txt.nl()
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
         c64.SETTIM(0,0,0)
-        parser.start_phase(1, false)
+        parser.start_phase(1)
         ubyte success = parse_file(filename)
         if success {
             txt.print(" (")
             txt.print_ub(symbols.num_symbols)
             txt.print(" symbols)\n")
-            parser.start_phase(2, false)
+            parser.start_phase(2)
             success = parse_file(filename)
         }
         parser.done()
@@ -193,26 +193,26 @@ parser {
     str input_line = "?" * max_line_length
     uword[3] word_addrs
     uword program_counter = $ffff
-    ubyte print_emit_bytes
     uword pc_min = $ffff
     uword pc_max = $0000
     ubyte phase             ; 1 = scan symbols, 2 = generate machine code
 
-    sub start_phase(ubyte ph, ubyte print) {
+    sub start_phase(ubyte ph) {
         phase = ph
-        print_emit_bytes = print
         input_line[0] = 0
         txt.print("phase ")
         txt.print_ub(phase)
     }
 
     sub process_line() -> ubyte {
-        string.lower(input_line)
+        ; string.lower(input_line)
         preprocess_assignment_spacing()
         split_input()
 
         if word_addrs[1] and @(word_addrs[1])=='='
             return do_assign()
+        else if @(word_addrs[0])=='.'
+            return process_assembler_directive(word_addrs[0], word_addrs[1])
         else
             return do_label_instr()
 
@@ -230,6 +230,10 @@ parser {
             txt.print("?syntax error\n")
             return false
         }
+
+        string.lower(word_addrs[0])
+        string.lower(word_addrs[2])
+
         ubyte valid_operand=false
         if @(word_addrs[2])=='*' {
             cx16.r15 = program_counter
@@ -266,6 +270,10 @@ parser {
         uword operand_ptr = 0
         ubyte starts_with_whitespace = input_line[0]==' ' or input_line[0]==9 or input_line[0]==160
 
+        string.lower(word_addrs[0])
+        string.lower(word_addrs[1])
+        string.lower(word_addrs[2])
+
         if word_addrs[2] {
             label_ptr = word_addrs[0]
             instr_ptr = word_addrs[1]
@@ -299,12 +307,8 @@ parser {
                     return false
             }
         }
-        if instr_ptr {
-            if @(instr_ptr)=='.'
-                return process_assembler_directive(instr_ptr, operand_ptr)
-
+        if instr_ptr
             return assemble_instruction(instr_ptr, operand_ptr)
-        }
 
         return true     ; empty line
     }
@@ -379,11 +383,6 @@ parser {
                 }
 
                 ubyte num_operand_bytes = operand_size[addr_mode]
-                if print_emit_bytes {
-                    txt.spc()
-                    txt.print_uwhex(program_counter, 1)
-                    txt.print("   ")
-                }
                 when phase {
                     1 -> {
                         program_counter++
@@ -397,8 +396,6 @@ parser {
                             emit_2(lsb(cx16.r15))
                             emit_2(msb(cx16.r15))
                         }
-                        if print_emit_bytes
-                            txt.nl()
                     }
                     else -> {
                         txt.print("?invalid phase\n")
@@ -616,7 +613,7 @@ parser {
     }
 
     sub process_assembler_directive(uword directive, uword operand) -> ubyte {
-        ; we only recognise .byte right now
+        ; we only recognise .byte and .str right now
         if string.compare(directive, ".byte")==0 {
             if operand {
                 ubyte length
@@ -625,11 +622,6 @@ parser {
                     if msb(cx16.r15) {
                         txt.print("?byte value too large\n")
                         return false
-                    }
-                    if print_emit_bytes {
-                        txt.spc()
-                        txt.print_uwhex(program_counter, 1)
-                        txt.print("   ")
                     }
                     if phase==2
                         emit_2(lsb(cx16.r15))
@@ -651,12 +643,30 @@ parser {
                             program_counter++
                         operand += length
                     }
-                    if print_emit_bytes
-                        txt.nl()
                     return true
                 }
             }
         }
+        else if string.compare(directive, ".str")==0 {
+            if operand and operand[0]=='\"' {
+                operand++
+                ubyte char_idx=0
+                repeat {
+                    ubyte char = @(operand+char_idx)
+                    when char {
+                        '\"', 0 -> return true
+                        else -> {
+                            if phase==2
+                                emit_2(char)
+                            else
+                                program_counter++
+                        }
+                    }
+                    char_idx++
+                }
+            }
+        }
+
         txt.print("?syntax error\n")
         return false
     }
@@ -710,32 +720,58 @@ _is_2_entry
         }}
     }
 
+    sub str_trimleft(uword st) -> uword {
+        repeat {
+            when @(st) {
+                ' ', 9, 160 -> st++
+                else -> return st
+            }
+        }
+        return 0
+    }
+
     sub emit_2(ubyte value) {
         @(program_counter) = value
         program_counter++
-
-        if print_emit_bytes {
-            txt.print_ubhex(value, 0)
-            txt.spc()
-        }
     }
 
     sub split_input() {
-        ; first strip the input string of extra whitespace and comments
-        ubyte copying_word = false
-        ubyte word_count
+        ubyte word_count = 0
         ubyte @zp char_idx = 0
-
         word_addrs[0] = 0
         word_addrs[1] = 0
         word_addrs[2] = 0
 
+        uword trimmed = str_trimleft(input_line)
+        if @(trimmed) == '.' {
+            ; line is directive
+            word_addrs[0] = trimmed
+            word_count=2
+            repeat {
+                when trimmed[char_idx] {
+                    ' ', 0, 9, 160 -> {
+                        trimmed += char_idx
+                        @(trimmed) = 0
+                        trimmed++
+                        word_addrs[1] = str_trimleft(trimmed)
+                        return
+                    }
+                    else -> {
+                        char_idx++
+                    }
+                }
+            }
+        }
+
+        ubyte copying_word = false
+        char_idx = 0
         ubyte @zp char
-        for char in input_line {
+        repeat {
+            char = trimmed[char_idx]
             when char {
                 ' ', 9, 160 -> {
                     if copying_word
-                        input_line[char_idx] = 0; terminate word
+                        trimmed[char_idx] = 0; terminate word
                     copying_word = false
                 }
                 ';', 0 -> {
@@ -746,7 +782,7 @@ _is_2_entry
                     if not copying_word {
                         if word_count==3
                             break
-                        word_addrs[word_count] = &input_line + char_idx
+                        word_addrs[word_count] = trimmed + char_idx
                         word_count++
                     }
                     copying_word = true
@@ -755,9 +791,9 @@ _is_2_entry
             char_idx++
         }
 
-        char = input_line[char_idx]
+        char = trimmed[char_idx]
         if char==' ' or char==9 or char==160 or char==';'
-            input_line[char_idx] = 0
+            trimmed[char_idx] = 0
     }
 
     sub debug_print_words() {        ; TODO remove

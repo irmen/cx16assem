@@ -88,7 +88,7 @@ symbols {
 
         str symbol2 = "?" * max_name_len
         @(symbol+length)=0
-        string.copy(symbol, symbol2)
+        void string.copy(symbol, symbol2)
         @(symbol+length)=tc
         return getvalue(symbol2)
     }
