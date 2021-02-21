@@ -14,7 +14,7 @@ main {
         symbols.init()
 
         txt.print("\ncommander-x16 65c02 file based assembler. >>work in progress<<\nhttps://github.com/irmen/cx16assem\n\n")
-        txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file, or just enter for interactive: ")
+        txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file: ")
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
@@ -33,10 +33,6 @@ main {
                         break
                     }
                 }
-            }
-            else {
-                user_input()
-                break
             }
         }
 
@@ -88,34 +84,6 @@ main {
             txt.print(diskio.status(8))
         }
         cx16.rombank(4)     ; switch back to basic rom
-    }
-
-    sub user_input() {
-        txt.lowercase()
-        txt.print("\nInteractive mode. Type assembly instructions, empty line to stop.\n")
-        parser.program_counter = $4000
-        parser.start_phase(2, true)
-        txt.nl()
-        repeat {
-            ubyte input_length = 0
-            txt.chrout('A')
-            txt.print_uwhex(parser.program_counter, 1)
-            txt.print(": ")
-            ; simulate user input always having at least one space at the start
-            ; otherwise every instruction typed is considered to be a label
-            parser.input_line[0] = ' '
-            input_length = txt.input_chars(&parser.input_line+1)
-            txt.nl()
-
-            if not input_length {
-                txt.print("exit\n")
-                return
-            }
-
-            if not parser.process_line()
-                break
-        }
-        parser.done()
     }
 
     sub file_input(uword filename) {
@@ -532,8 +500,23 @@ parser {
                             return instructions.am_IzY
                     }
                 } else {
-                    ; TODO deal with (symbol)
-                    txt.print("\ntodo (symbol)\n")
+                    sym_ptr = operand_ptr
+                    parsed_len = 0
+                    while is_symbol_char(@(operand_ptr)) {
+                        operand_ptr++
+                        parsed_len++
+                    }
+                    if symbols.getvalue2(sym_ptr, parsed_len) {
+                        ; TODO deal with (symbol)
+                        txt.print("\ntodo (symbol): ")
+                        txt.print(sym_ptr)
+                        txt.chrout('=')
+                        txt.print_uwhex(cx16.r0, true)
+                        txt.nl()
+                        return instructions.am_Invalid  ; TODO determine correct addressing mode
+                    } else {
+                        err_undefined_symbol(sym_ptr)
+                    }
                 }
                 return instructions.am_Invalid
             }

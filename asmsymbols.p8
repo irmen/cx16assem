@@ -31,7 +31,7 @@ symbols {
     }
 
     ; SUBROUTINE: setvalue
-    ; ARGS: symbol = address of the symbol name,
+    ; ARGS: symbol = address of the symbol name (0-terminated string),
     ;       value = byte or word value for this symbol,
     ;       datatype = dt_ubyte or dt_uword to specify the datatype of the value.
     ; RETURNS: success boolean.
@@ -54,7 +54,7 @@ symbols {
     }
 
     ; SUBROUTINE: getvalue
-    ; ARGS: symbol = address of the symbol name,
+    ; ARGS: symbol = address of the symbol name (0-terminated string)
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
     ; PURPOSE: retrieve the value of a symbol.
@@ -72,6 +72,25 @@ symbols {
             }
         }
         return false
+    }
+
+    ; SUBROUTINE: getvalue
+    ; ARGS: symbol = address of the symbol name, length = length of the symbol name
+    ; RETURNS: success boolean. If successful,
+    ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
+    ; PURPOSE: retrieve the value of a symbol.
+    sub getvalue2(uword symbol, ubyte length) -> ubyte {
+        ; -- returns success. The value will be in cx16.r0, the datatype in cx16.r1
+        ;    TODO more efficient lookup rather than linear scan
+        ubyte tc = @(symbol+length)
+        if tc==0
+            return getvalue(symbol)     ; symbol name is 0-terminated
+
+        str symbol2 = "?" * max_name_len
+        @(symbol+length)=0
+        string.copy(symbol, symbol2)
+        @(symbol+length)=tc
+        return getvalue(symbol2)
     }
 
     ; SUBROUTINE: dump
