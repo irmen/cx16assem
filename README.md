@@ -1,10 +1,8 @@
 # cx16assem
 
-File-based 65c02 assembler for Commander-X16
+File-based 65c02 assembler for Commander-X16 (Work in progress)
 
-Work in progress.
-
-Written in Prog8. (Requires prog8 compiler 6.2 or newer).
+Requires prog8 compiler 6.2 or newer to build from source.
 
 Compiling
 ---------
@@ -22,16 +20,16 @@ Type 'make emu' to immediately boot the assembler in the Commander X16 emulator.
 Todo
 ----
 
-- fix remaining addressing modes when using symbols
+- write output to disk rather than memory.
 
 - optimize phase 1, it now does too many things double that are only needed in phase 2
 
-- largest time saver now is to cache the source file in memory to avoid the need to reload it in phase 2.
-  this is pretty hard to do unless the source file fits in memory.
+- largest time saver now will be to cache the source file in memory to avoid the need to reload it in phase 2.
+  this is pretty hard to do unless the source file fits fully in contiguous memory.
 
 - profile the various steps to see where the most time is spent i.e. what needs optimizing most 
   
-- improve symbol table: more entries, faster symbol search
+- improve symbol table: allow more entries, faster symbol search
 
 
 Maybe some day:
