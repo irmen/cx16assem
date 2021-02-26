@@ -124,7 +124,7 @@ main {
                     txt.chrout('.')
 
                 if not parser.process_line() {
-                    txt.print("\nerror. last line was ")
+                    txt.print("\n\x12error.\x92 last line was ")
                     txt.print_uw(line)
                     txt.print(": ")
                     txt.print(parser.word_addrs[0])
@@ -481,7 +481,7 @@ parser {
                 operand_ptr++
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
-                    return operand_determine_indirect_addrmode(operand_ptr+parsed_len)
+                    return operand_determine_indirect_addrmode(operand_ptr + parsed_len)
                 } else {
                     sym_ptr = operand_ptr
                     parsed_len = 0
@@ -501,30 +501,8 @@ parser {
             '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
                 ; address optionally followed by ,x or ,y or ,address
                 parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len {
-                    operand_ptr += parsed_len
-                    if msb(cx16.r15) {
-                        ; word value, so absolute or abs indirects
-                        if @(operand_ptr)==0
-                            return instructions.am_Abs
-                        if str_is2(operand_ptr, ",x")
-                            return instructions.am_AbsX
-                        if str_is2(operand_ptr, ",y")
-                            return instructions.am_AbsY
-                    } else {
-                        ; byte value, so zero page or zp indirects
-                        if @(operand_ptr)==0
-                            return instructions.am_Zp
-                        if str_is2(operand_ptr, ",x")
-                            return instructions.am_ZpX
-                        if str_is2(operand_ptr, ",y")
-                            return instructions.am_ZpY
-                        if @(operand_ptr)==',' {
-                            ; assume BBR $zp,$aaaa or BBS $zp,$aaaa
-                            return instructions.am_Zpr
-                        }
-                    }
-                }
+                if parsed_len
+                    return operand_determine_abs_or_zp_addrmode(operand_ptr + parsed_len)
                 return instructions.am_Invalid
             }
             else -> sym_ptr = operand_ptr
@@ -545,22 +523,17 @@ parser {
             ;  if it's not defined: error (if in phase 2) or skip (if in phase 1)
             if symbols.getvalue(sym_ptr) {
                 cx16.r15 = cx16.r0
-                if lsb(cx16.r1)==symbols.dt_ubyte {
-                    ; TODO determine addressing mode! Zp, ZpX, ZpY
-                    return instructions.am_Zp
-                }
-                if lsb(cx16.r1)==symbols.dt_uword {
-                    ; TODO determine addressing mode! Abs, AbsX, AbsY
-                    return instructions.am_Abs
-                }
-                txt.print("?invalid symbol datatype\n")
-                return instructions.am_Invalid
+                return operand_determine_abs_or_zp_addrmode(operand_ptr)
             } else {
                 if phase==1 {
-                    ; skip the symbol
-                    ; TODO determine addressing mode! Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
+                    ; the symbol is undefined in phase 1.
+                    ; enter it in the symbol table preliminary, and assume it is a word datatype.
+                    ; (if that is not correct, the symbol should be defined before use to correct this...)
                     cx16.r15 = program_counter  ; to avoid branch Rel errors
-                    return instructions.am_Abs
+                    ubyte symbol_idx = symbols.setvalue(sym_ptr, cx16.r15, symbols.dt_uword_placeholder)
+                    if not symbol_idx
+                        return instructions.am_Invalid
+                    return operand_determine_abs_or_zp_addrmode(operand_ptr)
                 }
                 if phase==2 {
                     err_undefined_symbol(sym_ptr)
@@ -573,20 +546,45 @@ parser {
         return instructions.am_Invalid
     }
 
-    sub operand_determine_indirect_addrmode(uword operand_ptr) -> ubyte {
+    sub operand_determine_abs_or_zp_addrmode(uword scan_ptr) -> ubyte {
+        if msb(cx16.r15) {
+            ; word value, so absolute or abs indexed
+            if @(scan_ptr)==0
+                return instructions.am_Abs
+            if str_is2(scan_ptr, ",x")
+                return instructions.am_AbsX
+            if str_is2(scan_ptr, ",y")
+                return instructions.am_AbsY
+        } else {
+            ; byte value, so zero page or zp indexed
+            if @(scan_ptr)==0
+                return instructions.am_Zp
+            if str_is2(scan_ptr, ",x")
+                return instructions.am_ZpX
+            if str_is2(scan_ptr, ",y")
+                return instructions.am_ZpY
+            if @(scan_ptr)==',' {
+                ; assume BBR $zp,$aaaa or BBS $zp,$aaaa
+                return instructions.am_Zpr
+            }
+        }
+        return instructions.am_Invalid
+    }
+
+    sub operand_determine_indirect_addrmode(uword scan_ptr) -> ubyte {
         if msb(cx16.r15) {
             ; absolute indirects
-            if str_is1(operand_ptr, ')')
+            if str_is1(scan_ptr, ')')
                 return instructions.am_Ind
-            if str_is3(operand_ptr, ",x)")
+            if str_is3(scan_ptr, ",x)")
                 return instructions.am_IaX
         } else {
             ; zero page indirects
-            if str_is1(operand_ptr, ')')
+            if str_is1(scan_ptr, ')')
                 return instructions.am_Izp
-            if str_is3(operand_ptr, ",x)")
+            if str_is3(scan_ptr, ",x)")
                 return instructions.am_IzX
-            if str_is3(operand_ptr, "),y")
+            if str_is3(scan_ptr, "),y")
                 return instructions.am_IzY
         }
 

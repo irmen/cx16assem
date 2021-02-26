@@ -26,10 +26,13 @@ Todo
 
 - optimize phase 1, it now does too many things double that are only needed in phase 2
 
+- largest time saver now is to cache the source file in memory to avoid the need to reload it in phase 2.
+  this is pretty hard to do unless the source file fits in memory.
+
+- profile the various steps to see where the most time is spent i.e. what needs optimizing most 
+  
 - improve symbol table: more entries, faster symbol search
 
-- cache the source file in memory to avoid the need to reload it in phase 2
-  (this is pretty hard to do unless the source file fits in memory)
 
 Maybe some day:
 

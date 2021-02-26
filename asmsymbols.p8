@@ -20,6 +20,8 @@ symbols {
 
     const ubyte dt_ubyte = 1
     const ubyte dt_uword = 2
+    const ubyte dt_ubyte_placeholder = 3
+    const ubyte dt_uword_placeholder = 4
 
     ; SUBROUTINE: init
     ; ARGS: -
@@ -35,15 +37,18 @@ symbols {
     ;       value = byte or word value for this symbol,
     ;       datatype = dt_ubyte or dt_uword to specify the datatype of the value.
     ; RETURNS: success boolean.
-    ; PURPOSE: adds a new symbol and its value to the table. You can't overwrite an existing symbol.
+    ; PURPOSE: adds a new symbol and its value to the table.
+    ;          You can't overwrite an existing symbol (unless it's a placeholder).
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
         if num_symbols>=max_entries {
             txt.print("\n?symbol table full\n")
             return 0
         }
         if getvalue(symbol) {
-            txt.print("\n?symbol already defined\n")
-            return 0
+            if lsb(cx16.r1) != dt_uword_placeholder and lsb(cx16.r1) != dt_ubyte_placeholder {
+                txt.print("\n?symbol already defined\n")
+                return 0
+            }
         }
         symbolptrs[num_symbols] = namebuffer
         namebuffer += string.copy(symbol, namebuffer) + 1
@@ -57,12 +62,14 @@ symbols {
     ; ARGS: symbol = address of the symbol name (0-terminated string)
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
+    ;
     ; PURPOSE: retrieve the value of a symbol.
     sub getvalue(uword symbol) -> ubyte {
         ; -- returns success. The value will be in cx16.r0, the datatype in cx16.r1
         ;    TODO more efficient lookup rather than linear scan
         if num_symbols {
             ubyte ix
+            ; note: must search last-to-first to use the latest registration before earlier ones.
             for ix in num_symbols-1 downto 0 {
                 if string.compare(symbol, symbolptrs[ix]) == 0 {
                     cx16.r0 = values[ix]
