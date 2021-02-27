@@ -397,10 +397,6 @@ parser {
                             emit_2(msb(cx16.r15))
                         }
                     }
-                    else -> {
-                        txt.print("?invalid phase\n")
-                        return false
-                    }
                 }
                 return true
             }
@@ -510,18 +506,20 @@ parser {
 
         ; if we end up here, it wasn't a recognisable numeric operand.
         ; so it must be a symbol, and the addressing mode is Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
+
         operand_ptr = sym_ptr
         if is_symbol_start_char(firstchr) {
-            while firstchr {
-                if not is_symbol_char(firstchr)
-                    return instructions.am_Invalid      ; must be a valid symbol name for the rest of the line
+            operand_ptr++
+            parsed_len = 1
+            while is_symbol_char(@(operand_ptr)) {
                 operand_ptr++
-                firstchr = @(operand_ptr)
+                parsed_len++
             }
+
             ; Process symbol.
             ;  if it's defined: substitute the value
             ;  if it's not defined: error (if in phase 2) or skip (if in phase 1)
-            if symbols.getvalue(sym_ptr) {
+            if symbols.getvalue2(sym_ptr, parsed_len) {
                 cx16.r15 = cx16.r0
                 return operand_determine_abs_or_zp_addrmode(operand_ptr)
             } else {
@@ -530,7 +528,7 @@ parser {
                     ; enter it in the symbol table preliminary, and assume it is a word datatype.
                     ; (if that is not correct, the symbol should be defined before use to correct this...)
                     cx16.r15 = program_counter  ; to avoid branch Rel errors
-                    ubyte symbol_idx = symbols.setvalue(sym_ptr, cx16.r15, symbols.dt_uword_placeholder)
+                    ubyte symbol_idx = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols.dt_uword_placeholder)
                     if not symbol_idx
                         return instructions.am_Invalid
                     return operand_determine_abs_or_zp_addrmode(operand_ptr)

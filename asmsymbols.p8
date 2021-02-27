@@ -24,21 +24,21 @@ symbols {
     const ubyte dt_uword_placeholder = 4
 
     ; SUBROUTINE: init
+    ; PURPOSE: call to clear the symbol table for initial use.
     ; ARGS: -
     ; RETURNS: -
-    ; PURPOSE: call to clear the symbol table for initial use.
     sub init() {
         namebuffer = memory("symbolnames", (max_name_len+1)*len(symbolptrs))
         num_symbols = 0
     }
 
     ; SUBROUTINE: setvalue
+    ; PURPOSE: adds a new symbol and its value to the table.
+    ;          You can't overwrite an existing symbol (unless it's a placeholder).
     ; ARGS: symbol = address of the symbol name (0-terminated string),
     ;       value = byte or word value for this symbol,
     ;       datatype = dt_ubyte or dt_uword to specify the datatype of the value.
     ; RETURNS: success boolean.
-    ; PURPOSE: adds a new symbol and its value to the table.
-    ;          You can't overwrite an existing symbol (unless it's a placeholder).
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
         if num_symbols>=max_entries {
             txt.print("\n?symbol table full\n")
@@ -49,6 +49,8 @@ symbols {
                 txt.print("\n?symbol already defined\n")
                 return 0
             }
+
+            ; TODO overwrite the symbol in-place rather than adding a new occurrence at the end
         }
         symbolptrs[num_symbols] = namebuffer
         namebuffer += string.copy(symbol, namebuffer) + 1
@@ -58,14 +60,28 @@ symbols {
         return num_symbols
     }
 
+    ; SUBROUTINE: setvalue2
+    ; PURPOSE: adds a new symbol and its value to the table.
+    ;          You can't overwrite an existing symbol (unless it's a placeholder).
+    ; ARGS: symbol = address of the symbol name,
+    ;       length = length of the symbol name,
+    ;       value = byte or word value for this symbol,
+    ;       datatype = dt_ubyte or dt_uword to specify the datatype of the value.
+    ; RETURNS: success boolean.
+    sub setvalue2(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
+        ubyte tc = @(symbol+length)
+        @(symbol+length) = 0
+        ubyte result = setvalue(symbol, value, datatype)
+        @(symbol+length) = tc
+        return result
+    }
+
     ; SUBROUTINE: getvalue
+    ; PURPOSE: retrieve the value of a symbol. Name limited by terminating 0.
     ; ARGS: symbol = address of the symbol name (0-terminated string)
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
-    ;
-    ; PURPOSE: retrieve the value of a symbol.
     sub getvalue(uword symbol) -> ubyte {
-        ; -- returns success. The value will be in cx16.r0, the datatype in cx16.r1
         ;    TODO more efficient lookup rather than linear scan
         if num_symbols {
             ubyte ix
@@ -81,28 +97,23 @@ symbols {
         return false
     }
 
-    ; SUBROUTINE: getvalue
+    ; SUBROUTINE: getvalue2
+    ; PURPOSE: retrieve the value of a symbol. Name limited by given length.
     ; ARGS: symbol = address of the symbol name, length = length of the symbol name
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
-    ; PURPOSE: retrieve the value of a symbol.
     sub getvalue2(uword symbol, ubyte length) -> ubyte {
-        ; -- returns success. The value will be in cx16.r0, the datatype in cx16.r1
         ;    TODO more efficient lookup rather than linear scan
         ubyte tc = @(symbol+length)
-        if tc==0
-            return getvalue(symbol)     ; symbol name is 0-terminated
-
-        str symbol2 = "?" * max_name_len
-        @(symbol+length)=0
-        void string.copy(symbol, symbol2)
-        @(symbol+length)=tc
-        return getvalue(symbol2)
+        @(symbol+length) = 0
+        ubyte result = getvalue(symbol)
+        @(symbol+length) = tc
+        return result
     }
 
     ; SUBROUTINE: dump
-    ; ARGS / RETURNS: -
     ; PURPOSE: prints all known symbols and their values.
+    ; ARGS / RETURNS: -
     sub dump() {
         txt.print("\nsymboltable contains ")
         txt.print_ub(num_symbols)
