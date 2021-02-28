@@ -612,8 +612,7 @@ parser {
         ; we only recognise .byte and .str right now
         if string.compare(directive, ".byte")==0 {
             if operand {
-                ubyte length
-                length = conv.any2uword(operand)
+                ubyte length = conv.any2uword(operand)
                 if length {
                     if msb(cx16.r15) {
                         txt.print("?byte value too large\n")
@@ -624,8 +623,10 @@ parser {
                     else
                         program_counter++
                     operand += length
+                    operand = str_trimleft(operand)
                     while @(operand)==',' {
                         operand++
+                        operand = str_trimleft(operand)
                         length = conv.any2uword(operand)
                         if not length
                             break
