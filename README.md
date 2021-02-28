@@ -16,7 +16,7 @@ Just type 'make'.
 Type 'make emu' to immediately boot the assembler in the Commander X16 emulator.
 
 
-##Todo
+## Todo
 
 - write output to disk rather than memory.
 
