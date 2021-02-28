@@ -124,7 +124,7 @@ main {
                     txt.chrout('.')
 
                 if not parser.process_line() {
-                    txt.print("\n\x12error.\x92 last line was ")
+                    txt.print("\n\n\x12error.\x92\n last line #")
                     txt.print_uw(line)
                     txt.print(": ")
                     txt.print(parser.word_addrs[0])
@@ -136,6 +136,8 @@ main {
                         txt.spc()
                         txt.print(parser.word_addrs[2])
                     }
+                    txt.print("\n pc: ")
+                    txt.print_uwhex(parser.program_counter, true)
                     txt.nl()
                     break
                 }
@@ -144,7 +146,7 @@ main {
                     break
                 }
                 if c64.STOP2() {
-                    txt.print("?break\n")
+                    txt.print("\n?break\n")
                     break
                 }
             }
@@ -161,7 +163,7 @@ main {
     }
 
     sub print_summary(uword lines, uword start_address, uword end_address) {
-        txt.print("\n\nstart address: ")
+        txt.print("\n\n\x12complete.\x92\n\nstart address: ")
         txt.print_uwhex(start_address, 1)
         txt.print("\n  end address: ")
         txt.print_uwhex(end_address, 1)
@@ -610,6 +612,7 @@ parser {
 
     sub process_assembler_directive(uword directive, uword operand) -> ubyte {
         ; we only recognise .byte and .str right now
+        string.lower(directive)
         if string.compare(directive, ".byte")==0 {
             if operand {
                 ubyte length = conv.any2uword(operand)
