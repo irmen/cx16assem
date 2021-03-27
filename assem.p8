@@ -428,6 +428,9 @@ parser {
         ; - addressing mode id as result value or 0 (am_Invalid) when error
         ; - operand numeric value in cx16.r15 (if applicable)
 
+        if operand_ptr==0
+            return instructions.am_Imp
+
         uword sym_ptr
         ubyte @zp firstchr = @(operand_ptr)
         ubyte parsed_len
