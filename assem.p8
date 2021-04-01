@@ -97,7 +97,7 @@ main {
         ubyte success = parse_file(filename)
         if success {
             txt.print(" (")
-            txt.print_ub(symbols.num_symbols)
+            txt.print_uw(symbols.numsymbols())
             txt.print(" symbols)\n")
             parser.start_phase(2)
             success = parse_file(filename)
@@ -253,9 +253,9 @@ parser {
                 if program_counter>pc_max
                     pc_max = program_counter
             } else if phase==1 {
-                ubyte dt = symbols.dt_ubyte
+                ubyte dt = symbols_dt.dt_ubyte
                 if msb(cx16.r15)
-                    dt = symbols.dt_uword
+                    dt = symbols_dt.dt_uword
                 ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, dt)
                 if not symbol_idx
                     return false
@@ -304,7 +304,7 @@ parser {
                 return false
             }
             if phase==1 {
-                ubyte symbol_idx = symbols.setvalue(label_ptr, program_counter, symbols.dt_uword)
+                ubyte symbol_idx = symbols.setvalue(label_ptr, program_counter, symbols_dt.dt_uword)
                 if not symbol_idx
                     return false
             }
@@ -457,7 +457,7 @@ parser {
                     if phase==2 {
                         ; retrieve symbol value
                         if symbols.getvalue(operand_ptr) {
-                            cx16.r1 = symbols.dt_ubyte
+                            cx16.r1 = symbols_dt.dt_ubyte
                             if lsbmsb=='>'
                                 cx16.r15 = msb(cx16.r0)
                             else
@@ -533,7 +533,7 @@ parser {
                     ; enter it in the symbol table preliminary, and assume it is a word datatype.
                     ; (if that is not correct, the symbol should be defined before use to correct this...)
                     cx16.r15 = program_counter  ; to avoid branch Rel errors
-                    ubyte symbol_idx = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols.dt_uword_placeholder)
+                    ubyte symbol_idx = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
                     if not symbol_idx
                         return instructions.am_Invalid
                     return operand_determine_abs_or_zp_addrmode(operand_ptr)

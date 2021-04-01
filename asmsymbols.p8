@@ -1,30 +1,41 @@
 %import textio
 
-; humble beginnings of dealing with the symbol table
-; restrictions for now:
-; max 128 symbols
-; max symbol name length 31 characters
-; (resulting in a symbol table of 4 Kb for now)
-; datatype unsigned byte 0-255 or unsigned word 0-65535
-; braindead symbol lookup (linear scan)
+; SYMBOL TABLE.
+; Capability: store names with their value (ubyte or uword, or temp placeholder for them).
+; External API:
+;   subroutines: init, numsymbols, setvalue, setvalue2, getvalue, getvalue2, dump
+;   (see the default implementation below for the exact signature of these routines)
+;   it uses the datatype constants defined in symbols_dt.
+
+
+symbols_dt {
+    ; datatypes of the values in the symboltable
+    const ubyte dt_ubyte = 1
+    const ubyte dt_uword = 2
+    const ubyte dt_ubyte_placeholder = 3
+    const ubyte dt_uword_placeholder = 4
+}
+
+
+; The code below is a simplistic implementation of the symbol table API.
+; Restrictions of this particular implementation:
+;   max symbols: 128 symbols
+;   max symbol name length: 31 characters
+;     (this results in a symbol table that uses 4 Kb memory)
+;   linear scan symbol lookup (slow)
 
 symbols {
     const ubyte max_entries = 128
     const ubyte max_name_len = 31       ; excluding the terminating 0
-
     uword[max_entries] symbolptrs
     uword[max_entries] values
     ubyte[max_entries] datatypes
     uword namebuffer
     ubyte num_symbols
 
-    const ubyte dt_ubyte = 1
-    const ubyte dt_uword = 2
-    const ubyte dt_ubyte_placeholder = 3
-    const ubyte dt_uword_placeholder = 4
 
     ; SUBROUTINE: init
-    ; PURPOSE: call to clear the symbol table for initial use.
+    ; PURPOSE: call to clear the symbol table for initial or subsequent use.
     ; ARGS: -
     ; RETURNS: -
     sub init() {
@@ -32,12 +43,20 @@ symbols {
         num_symbols = 0
     }
 
+    ; SUBROUTINE: numsymbols
+    ; PURPOSE: returns the number of symbols in the symboltable
+    ; ARGS: -
+    ; RETURNS: uword, the number of symbols.
+    inline sub numsymbols() -> uword {
+        return num_symbols
+    }
+
     ; SUBROUTINE: setvalue
     ; PURPOSE: adds a new symbol and its value to the table.
     ;          You can't overwrite an existing symbol (unless it's a placeholder).
     ; ARGS: symbol = address of the symbol name (0-terminated string),
     ;       value = byte or word value for this symbol,
-    ;       datatype = dt_ubyte or dt_uword to specify the datatype of the value.
+    ;       datatype = symbols_dt.dt_ubyte or symbols_dt.dt_uword to specify the datatype of the value.
     ; RETURNS: success boolean.
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
         if num_symbols>=max_entries {
@@ -45,7 +64,7 @@ symbols {
             return 0
         }
         if getvalue(symbol) {
-            if lsb(cx16.r1) != dt_uword_placeholder and lsb(cx16.r1) != dt_ubyte_placeholder {
+            if lsb(cx16.r1) != symbols_dt.dt_uword_placeholder and lsb(cx16.r1) != symbols_dt.dt_ubyte_placeholder {
                 txt.print("\n?symbol already defined\n")
                 return 0
             }
@@ -66,7 +85,7 @@ symbols {
     ; ARGS: symbol = address of the symbol name,
     ;       length = length of the symbol name,
     ;       value = byte or word value for this symbol,
-    ;       datatype = dt_ubyte or dt_uword to specify the datatype of the value.
+    ;       datatype = symbols_dt.dt_ubyte or symbols_dt.dt_uword to specify the datatype of the value.
     ; RETURNS: success boolean.
     sub setvalue2(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
         ubyte tc = @(symbol+length)
@@ -122,7 +141,7 @@ symbols {
             ubyte ix
             for ix in num_symbols-1 downto 0 {
                 txt.print("  ")
-                if datatypes[ix]==dt_ubyte {
+                if datatypes[ix]==symbols_dt.dt_ubyte {
                     txt.print("  ")
                     txt.print_ubhex(lsb(values[ix]), true)
                 }
