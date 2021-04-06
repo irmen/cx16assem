@@ -36,8 +36,6 @@ main {
                 }
             }
         }
-
-        symbols.dump()
     }
 
     sub list_asm_files() {
@@ -105,8 +103,12 @@ main {
         parser.done()
         cx16.rombank(4)     ; switch back to basic rom
 
-        if success
+        symbols.dump()
+
+        if success {
             print_summary(cx16.r15, parser.pc_min, parser.pc_max)
+            save_program(parser.pc_min, parser.pc_max)
+        }
     }
 
     sub parse_file(uword filename) -> ubyte {
@@ -184,6 +186,17 @@ main {
             txt.chrout('0')
         txt.print_uw(current_time)
         txt.nl()
+    }
+
+    sub save_program(uword start_address, uword end_address) {
+        txt.print("\nenter filename to save as (without .prg) > ")
+        if txt.input_chars(main.start.filename) {
+            txt.print("\nsaving...")
+            diskio.delete(8, main.start.filename)
+            if not diskio.save(8, main.start.filename, start_address, end_address-start_address) {
+                txt.print(diskio.status(8))
+            }
+        }
     }
 }
 
@@ -391,12 +404,12 @@ parser {
                         program_counter += num_operand_bytes
                     }
                     2 -> {
-                        emit_2(opcode)
+                        emit(opcode)
                         if num_operand_bytes==1 {
-                            emit_2(lsb(cx16.r15))
+                            emit(lsb(cx16.r15))
                         } else if num_operand_bytes == 2 {
-                            emit_2(lsb(cx16.r15))
-                            emit_2(msb(cx16.r15))
+                            emit(lsb(cx16.r15))
+                            emit(msb(cx16.r15))
                         }
                     }
                 }
@@ -625,7 +638,7 @@ parser {
                         return false
                     }
                     if phase==2
-                        emit_2(lsb(cx16.r15))
+                        emit(lsb(cx16.r15))
                     else
                         program_counter++
                     operand += length
@@ -641,7 +654,7 @@ parser {
                             return false
                         }
                         if phase==2
-                            emit_2(lsb(cx16.r15))
+                            emit(lsb(cx16.r15))
                         else
                             program_counter++
                         operand += length
@@ -660,7 +673,7 @@ parser {
                         '\"', 0 -> return true
                         else -> {
                             if phase==2
-                                emit_2(char)
+                                emit(char)
                             else
                                 program_counter++
                         }
@@ -733,7 +746,8 @@ _is_2_entry
         return 0
     }
 
-    sub emit_2(ubyte value) {
+    ; TODO inline this once we can inline subs with parameters
+    sub emit(ubyte value) {
         @(program_counter) = value
         program_counter++
     }
