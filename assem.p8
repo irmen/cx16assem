@@ -613,17 +613,48 @@ parser {
         txt.nl()
     }
 
-    sub is_symbol_start_char(ubyte chr) -> ubyte {
+; this is rewritten in assembly because of inner loop optimizations
+;    sub is_symbol_start_char(ubyte chr) -> ubyte {
+;        ; note: chr is already lowercased
+;        if chr>='a' and chr <= 'z'
+;            return true
+;        return chr=='.' or chr=='@'
+;    }
+
+    asmsub is_symbol_start_char(ubyte chr @A) -> ubyte @A {
         ; note: chr is already lowercased
-        if chr>='a' and chr <= 'z'
-            return true
-        return chr=='.' or chr=='@'
+        %asm {{
+            cmp  #'.'
+            beq  _yes
+            cmp  #'@'
+            beq  _yes
+            cmp  #'a'
+            bcc  _no
+            cmp  #'z'+1
+            bcc  _yes
+_no         lda  #0
+            rts
+_yes        lda  #1
+            rts
+        }}
     }
 
-    sub is_symbol_char(ubyte chr) -> ubyte {
-        if chr>='0' and chr <= '9'
-            return true
-        return is_symbol_start_char(chr)
+; this is rewritten in assembly because of inner loop optimizations
+;    sub is_symbol_char(ubyte chr) -> ubyte {
+;        if chr>='0' and chr <= '9'
+;            return true
+;        return is_symbol_start_char(chr)
+;    }
+
+    asmsub is_symbol_char(ubyte chr @A) -> ubyte @A {
+        %asm {{
+            cmp  #'0'
+            bcc  is_symbol_start_char
+            cmp  #'9'+1
+            bcs  is_symbol_start_char
+            lda  #1
+            rts
+        }}
     }
 
     sub process_assembler_directive(uword directive, uword operand) -> ubyte {
@@ -746,7 +777,6 @@ _is_2_entry
         return 0
     }
 
-    ; TODO inline this once we can inline subs with parameters
     sub emit(ubyte value) {
         @(program_counter) = value
         program_counter++
