@@ -131,15 +131,23 @@ symbols {
     }
 
     ; SUBROUTINE: dump
-    ; PURPOSE: prints all known symbols and their values.
+    ; PURPOSE: prints the known symbols and their values
     ; ARGS / RETURNS: -
-    sub dump() {
+    sub dump(uword num_lines) {
         txt.print("\nsymboltable contains ")
         txt.print_ub(num_symbols)
         txt.print(" entries:\n")
         if num_symbols {
+            if num_lines >= num_symbols
+                num_lines = num_symbols
+            if num_lines != num_symbols {
+                txt.print("(displaying only the last ")
+                txt.print_uw(num_lines)
+                txt.print(")\n")
+            }
+            ubyte limit = (num_symbols - num_lines) as ubyte
             ubyte ix
-            for ix in num_symbols-1 downto 0 {
+            for ix in num_symbols-1 downto limit {
                 txt.print("  ")
                 if datatypes[ix]==symbols_dt.dt_ubyte {
                     txt.print("  ")

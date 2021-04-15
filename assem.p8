@@ -13,7 +13,7 @@ main {
 
         symbols.init()
 
-        txt.print("\ncommander-x16 65c02 file based assembler. >>work in progress<<\nhttps://github.com/irmen/cx16assem\n\n")
+        txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nhttps://github.com/irmen/cx16assem\n\n")
         txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file, q to quit: ")
         repeat {
             txt.print("\n> ")
@@ -41,10 +41,13 @@ main {
     sub list_asm_files() {
         if diskio.lf_start_list(8, "*.asm") {
             while diskio.lf_next_entry() {
-                txt.print(diskio.list_filename)
-                txt.print("  : ")
+                txt.spc()
                 txt.print_uw(diskio.list_blocks)
-                txt.print(" blocks\n")
+                txt.print(" blks")
+                txt.column(11)
+                txt.print(": ")
+                txt.print(diskio.list_filename)
+                txt.nl()
             }
             diskio.lf_end_list()
             return
@@ -101,14 +104,14 @@ main {
             success = parse_file(filename)
         }
         parser.done()
-        cx16.rombank(4)     ; switch back to basic rom
-
-        symbols.dump()
+        symbols.dump(15)
 
         if success {
             print_summary(cx16.r15, parser.pc_min, parser.pc_max)
             save_program(parser.pc_min, parser.pc_max)
         }
+
+        cx16.rombank(4)     ; switch back to basic rom
     }
 
     sub parse_file(uword filename) -> ubyte {
