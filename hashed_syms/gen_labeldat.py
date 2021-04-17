@@ -21,18 +21,7 @@ maximum = int(input("max number of labels? "))
 labels = [create_labelname(idx) for idx in range(maximum)]
 
 
-
-
-def write_asm():
-    with open("labeltest.asm", "wt") as out:
-        out.write("*=$6000\n")
-        for idx in range(maximum):
-            out.write(labels[idx]+"\n")
-            out.write(f"\tJMP  {labels[maximum-idx-1]}\n")
-
-
 def test_strategy(labels):
-    symtab = [[] for _ in range(128)]
     for label in labels:
         length=len(label)
         c0 = ord(label[0])
@@ -43,5 +32,13 @@ def test_strategy(labels):
         print(idx, label)
 
 
+def write_data(labels):
+    with open("labels.bin", "wb") as out:
+        for label in labels:
+            print(label)
+            out.write(label.encode("ascii"))
+            out.write(b'\0')
+
+
 test_strategy(labels)
-# write_asm()
+write_data(labels)
