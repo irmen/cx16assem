@@ -13,7 +13,7 @@ main {
 
         symbols.init()
 
-        txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nhttps://github.com/irmen/cx16assem\n\n")
+        txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
         txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file, q to quit: ")
         repeat {
             txt.print("\n> ")
