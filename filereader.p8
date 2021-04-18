@@ -1,41 +1,20 @@
-; experimental file loading into VERA bank 1 memory
-; $10000 - $1f900  (about 62 kb contiguous memory)
-
+%target cx16
 %import textio
 %import diskio
-%zeropage basicsafe
-%option no_sysinit
 
-main {
-    sub start() {
-        str filename = "??????????????????????????????"
+; routines to load a source file into memory (all at once),
+; and to provide an iteration mechanism to retrieve the lines in sequential order
+; (by copying them to a given line buffer in system memory).
+;
+; For simplicity (not having to deal with ram-banking), the file is currently
+; read into the free area of VERA's upper vram bank  ($10000 - $1f900, about 62 kb contiguous memory)
+; This memory is unused in the default text screen mode.
+;
+; It does mean that the source files are currently limited to 62 kilobyte.
+; Maybe in the future this could be changed to use regular (banked) system RAM instead,
+; which would allow for much bigger files to be processed.
 
-        txt.print("filename> ")
-        if txt.input_chars(filename) {
-            txt.nl()
-            if reader.read_file(filename) {
-                process()
-            } else {
-                txt.print("?load error\n")
-            }
-        }
-    }
-
-
-    sub process() {
-        str buffer = "?" * 160
-        reader.start_get_lines()
-        while reader.next_line(buffer) {
-            txt.print(buffer)
-            txt.nl()
-        }
-    }
-
-}
-
-reader {
-    uword line_ptr
-
+filereader {
     sub read_file(uword filename) -> ubyte {
         ubyte success = false
         if diskio.f_open(8, filename) {
@@ -69,9 +48,9 @@ reader {
                     goto error
                 }
             }
-            txt.print("\x9d done ")
+            txt.print("\x9d ")
             txt.print_uw(vram_addr)
-            txt.print(" bytes\n")
+            txt.print(" bytes. ")
 
             ; tag the end of the file as a $00,$ff byte sequence
             cx16.vpoke(1, vram_addr, 0)
@@ -82,6 +61,8 @@ error:
         }
         return success
     }
+
+    uword line_ptr
 
     inline sub start_get_lines() {
         line_ptr = $0000

@@ -3,6 +3,7 @@
 %import diskio
 %import string
 %import asmsymbols
+%import filereader
 %zeropage basicsafe
 %option no_sysinit
 
@@ -89,7 +90,7 @@ main {
     }
 
     sub file_input(uword filename) {
-        txt.print("reading ")
+        txt.print("assembling ")
         txt.print(filename)
         txt.nl()
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
@@ -104,10 +105,13 @@ main {
             success = parse_file(filename)
         }
         parser.done()
+        uword wall_time = c64.RDTIM16()
+
+        txt.nl()
         symbols.dump(15)
 
         if success {
-            print_summary(cx16.r15, parser.pc_min, parser.pc_max)
+            print_summary(cx16.r15, parser.pc_min, parser.pc_max, wall_time)
             save_program(parser.pc_min, parser.pc_max)
         }
 
@@ -116,58 +120,48 @@ main {
 
     sub parse_file(uword filename) -> ubyte {
         ; returns success status, and last processed line number in cx16.r15
-        ubyte success = false
-        cx16.r15 = 0
 
-        if diskio.f_open(8, filename) {
-            uword line=0
-            repeat {
-                void diskio.f_readline(parser.input_line)
-                line++
-
-                if not lsb(line)
-                    txt.chrout('.')
-
-                if not parser.process_line() {
-                    txt.print("\n\n\x12error.\x92\n last line #")
-                    txt.print_uw(line)
-                    txt.print(": ")
-                    txt.print(parser.word_addrs[0])
-                    if parser.word_addrs[1] {
-                        txt.spc()
-                        txt.print(parser.word_addrs[1])
-                    }
-                    if parser.word_addrs[2] {
-                        txt.spc()
-                        txt.print(parser.word_addrs[2])
-                    }
-                    txt.print("\n pc: ")
-                    txt.print_uwhex(parser.program_counter, true)
-                    txt.nl()
-                    break
-                }
-                if c64.READST() {
-                    success = c64.READST()&64==64       ; end of file?
-                    break
-                }
-                if c64.STOP2() {
-                    txt.print("\n?break\n")
-                    break
-                }
+        if parser.phase==1 {
+            if not filereader.read_file(filename) {
+                txt.nl()
+                txt.print(diskio.status(8))
+                return false
             }
-            diskio.f_close()
-            parser.done()
-            cx16.r15 = line
-
-        } else {
-            txt.nl()
-            txt.print(diskio.status(8))
         }
 
-        return success
+        cx16.r15 = 0
+        txt.print("parsing")
+        filereader.start_get_lines()
+        uword line = 0
+        while filereader.next_line(parser.input_line) {
+            if not lsb(line)
+                txt.chrout('.')
+
+            if not parser.process_line() {
+                txt.print("\n\n\x12error.\x92\n last line #")
+                txt.print_uw(line)
+                txt.print(": ")
+                txt.print(parser.word_addrs[0])
+                if parser.word_addrs[1] {
+                    txt.spc()
+                    txt.print(parser.word_addrs[1])
+                }
+                if parser.word_addrs[2] {
+                    txt.spc()
+                    txt.print(parser.word_addrs[2])
+                }
+                txt.print("\n pc: ")
+                txt.print_uwhex(parser.program_counter, true)
+                txt.nl()
+                return false
+            }
+
+            line++
+        }
+        return true
     }
 
-    sub print_summary(uword lines, uword start_address, uword end_address) {
+    sub print_summary(uword lines, uword start_address, uword end_address, uword wall_time) {
         txt.print("\n\n\x12complete.\x92\n\nstart address: ")
         txt.print_uwhex(start_address, 1)
         txt.print("\n  end address: ")
@@ -178,16 +172,15 @@ main {
         txt.print_uw(lines)
 
         txt.print("\n  time (sec.): ")
-        uword current_time = c64.RDTIM16()
-        uword secs = current_time / 60
-        current_time = (current_time - secs*60)*1000/60
+        uword secs = wall_time / 60
+        wall_time = (wall_time - secs*60)*1000/60
         txt.print_uw(secs)
         txt.chrout('.')
-        if current_time<10
+        if wall_time<10
             txt.chrout('0')
-        if current_time<100
+        if wall_time<100
             txt.chrout('0')
-        txt.print_uw(current_time)
+        txt.print_uw(wall_time)
         txt.nl()
     }
 
@@ -220,6 +213,7 @@ parser {
         input_line[0] = 0
         txt.print("phase ")
         txt.print_ub(phase)
+        txt.spc()
     }
 
     sub process_line() -> ubyte {

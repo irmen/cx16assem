@@ -8,7 +8,7 @@ clean:
 emu:  assem.prg
 	x16emu -sdcard ~/cx16sdcard.img -scale 2 -run -prg $<
 
-assem.prg: assem.p8 asmsymbols.p8 opcodes.asm
+assem.prg: assem.p8 filereader.p8 asmsymbols.p8 opcodes.asm
 	p8compile $< -target cx16
 
 opcodes.asm:  gen_opcodes.py
