@@ -24,18 +24,13 @@ After successfully assembling a source file, a summary will be printed.
 You can then enter the filename to save the program as on disk (will overwrite existing file with the same name!).
 It's always saved in PRG format, so you can load the program again with ``LOAD "NAME",8,1``
 
+The source file is cached in (V)RAM and is currently limited to 62 Kb.
 
 ## Todo
 
-- write machine code to upper banked RAM instead of main memory, so we can assemble larger programs.
+- write output machine code to upper banked RAM instead of main memory, so we can assemble larger programs.
   (this also means we can't simply use SAVE routine anymore)
   
-- largest time saver now will be to cache the source file in (banked) memory to avoid the need to reload it in phase 2.
-  (this means the line input routine has to change drastically as well)
-- could also perhaps use VERA's bank 1 to store around 60Kb contiguously to avoid banking hassles!
-- the symbol table can now store (bank+address) references to the symbols in memory,
-  instead of having to copy the symbol name into a separate buffer
-
 - optimize phase 1, it now does too many things double that are only needed in phase 2
 
 - profile the various steps to see where the most time is spent i.e. what needs optimizing most 
