@@ -41,11 +41,25 @@ filereader {
                 txt.chrout(157)     ; cursor left
                 anim_counter = (anim_counter+1) & 7
                 ; ... now copy that ram buffer to VERA vram
-                cx16.vaddr(1, vram_addr, 0, true)
-                ubyte idx
-                for idx in 0 to lsb(length)-1 {
-                    cx16.VERA_DATA0 = buffer[idx]
-                }
+                %asm {{
+                    stz  cx16.VERA_CTRL
+                    lda  vram_addr
+                    sta  cx16.VERA_ADDR_L
+                    lda  vram_addr+1
+                    sta  cx16.VERA_ADDR_M
+                    lda  #%00010001
+                    sta  cx16.VERA_ADDR_H
+                    lda  #<buffer
+                    sta  P8ZP_SCRATCH_W1
+                    lda  #>buffer
+                    sta  P8ZP_SCRATCH_W1+1
+                    ldy  #0
+_copyloop           lda  (P8ZP_SCRATCH_W1),y
+                    sta  cx16.VERA_DATA0
+                    iny
+                    cpy  length
+                    bne  _copyloop
+                }}
                 vram_addr += length
             }
             txt.print("\x9d ")
@@ -68,32 +82,44 @@ error:
         line_ptr = $0000
     }
 
-    sub next_line(uword buffer) -> ubyte {
-        ; Copy the next line of text from vram to the system ram buffer.
-        ; Returns false when no more lines available.
-        ubyte chr
-        ubyte length=0
-        cx16.vaddr(1, line_ptr, 0, true)
-        repeat {
-            chr = cx16.VERA_DATA0
-            if_z {
-                buffer[length] = 0
-                return false        ; eof
-            }
-            when chr {
-                $a, $d -> {
-                    buffer[length] = 0
-                    length++
-                    line_ptr += length
-                    return true     ; eol
-                }
-                else -> {
-                    buffer[length] = chr
-                    length++
-                }
-            }
-        }
+    asmsub next_line(uword buffer @AY) -> ubyte @A {
+        ; Optimized routine to copy the next line of text from vram to the system ram buffer.
+        ; Returns true when a line is available, false when EOF was reached.
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            stz  cx16.VERA_CTRL
+            lda  line_ptr
+            sta  cx16.VERA_ADDR_L
+            lda  line_ptr+1
+            sta  cx16.VERA_ADDR_M
+            lda  #%00010001
+            sta  cx16.VERA_ADDR_H
+            ldy  #0
 
-        return false    ; not reached
+_lineloop   lda  cx16.VERA_DATA0
+            beq  _eof
+            cmp  #$0a
+            beq  _eol
+            cmp  #$0d
+            beq  _eol
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            bra  _lineloop
+
+_eol        lda  #0
+            sta  (P8ZP_SCRATCH_W1),y
+            tya
+            sec
+            adc  line_ptr
+            sta  line_ptr
+            bcc  +
+            inc  line_ptr+1
++           lda  #1
+            rts
+
+_eof        sta  (P8ZP_SCRATCH_W1),y
+            rts
+        }}
     }
 }
