@@ -89,7 +89,12 @@ main {
         cx16.rombank(4)     ; switch back to basic rom
     }
 
+    uword time_load
+    uword time_phase1
+    uword time_phase2
+
     sub file_input(uword filename) {
+
         txt.print("assembling ")
         txt.print(filename)
         txt.nl()
@@ -98,6 +103,7 @@ main {
         parser.start_phase(1)
         ubyte success = parse_file(filename)
         if success {
+            time_phase1 = c64.RDTIM16()
             txt.print(" (")
             txt.print_uw(symbols.numsymbols())
             txt.print(" symbols)\n")
@@ -105,13 +111,12 @@ main {
             success = parse_file(filename)
         }
         parser.done()
-        uword wall_time = c64.RDTIM16()
-
+        time_phase2 = c64.RDTIM16()
         txt.nl()
         symbols.dump(15)
 
         if success {
-            print_summary(cx16.r15, parser.pc_min, parser.pc_max, wall_time)
+            print_summary(cx16.r15, parser.pc_min, parser.pc_max)
             save_program(parser.pc_min, parser.pc_max)
         }
 
@@ -127,6 +132,7 @@ main {
                 txt.print(diskio.status(8))
                 return false
             }
+            time_load = c64.RDTIM16()
         }
 
         cx16.r15 = 0
@@ -161,7 +167,7 @@ main {
         return true
     }
 
-    sub print_summary(uword lines, uword start_address, uword end_address, uword wall_time) {
+    sub print_summary(uword lines, uword start_address, uword end_address) {
         txt.print("\n\n\x12complete.\x92\n\nstart address: ")
         txt.print_uwhex(start_address, 1)
         txt.print("\n  end address: ")
@@ -171,17 +177,15 @@ main {
         txt.print(" bytes)\n source lines: ")
         txt.print_uw(lines)
 
-        txt.print("\n  time (sec.): ")
-        uword secs = wall_time / 60
-        wall_time = (wall_time - secs*60)*1000/60
-        txt.print_uw(secs)
-        txt.chrout('.')
-        if wall_time<10
-            txt.chrout('0')
-        if wall_time<100
-            txt.chrout('0')
-        txt.print_uw(wall_time)
-        txt.nl()
+        txt.print("\n    load time: ")
+        txt.print_uw(time_load)
+        txt.print(" jf.\n phase 1 time: ")
+        txt.print_uw(time_phase1-time_load)
+        txt.print(" jf.\n phase 2 time: ")
+        txt.print_uw(time_phase2-time_phase1)
+        txt.print(" jf.\n   total time: ")
+        txt.print_uw(time_phase2)
+        txt.print(" jf.\n")
     }
 
     sub save_program(uword start_address, uword end_address) {
