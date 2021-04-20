@@ -6,6 +6,12 @@
 ;   subroutines: init, numsymbols, setvalue, setvalue2, getvalue, getvalue2, dump
 ;   (see the default implementation below for the exact signature of these routines)
 ;   it uses the datatype constants defined in symbols_dt.
+;
+; Some calls into the symboltable are done with 0-terminated strings, in this
+; case the length of the symbol is not required to be passed in.
+; Some calls into the symboltable are done with strings that are NOT 0-terminated,
+; because they're just a fragment inside another string. In this case the length is passed in.
+; This is the reason we have getvalue+getvalue2 and setvalue+setvalue2.
 
 
 symbols_dt {
