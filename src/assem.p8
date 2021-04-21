@@ -140,9 +140,9 @@ main {
         filereader.start_get_lines()
         uword line = 0
         while filereader.next_line(parser.input_line) {
+            line++
             if not lsb(line)
                 txt.chrout('.')
-
             if not parser.process_line() {
                 txt.print("\n\n\x12error.\x92\n last line #")
                 txt.print_uw(line)
@@ -161,8 +161,6 @@ main {
                 txt.nl()
                 return false
             }
-
-            line++
         }
         return true
     }
@@ -247,8 +245,8 @@ parser {
             return false
         }
 
-        string.lower(word_addrs[0])
-        string.lower(word_addrs[2])
+        void string.lower(word_addrs[0])
+        void string.lower(word_addrs[2])
 
         ubyte valid_operand=false
         if @(word_addrs[2])=='*' {
@@ -286,9 +284,9 @@ parser {
         uword operand_ptr = 0
         ubyte starts_with_whitespace = input_line[0]==' ' or input_line[0]==9 or input_line[0]==160
 
-        string.lower(word_addrs[0])
-        string.lower(word_addrs[1])
-        string.lower(word_addrs[2])
+        void string.lower(word_addrs[0])
+        void string.lower(word_addrs[1])
+        void string.lower(word_addrs[2])
 
         if word_addrs[2] {
             label_ptr = word_addrs[0]
@@ -660,7 +658,7 @@ _yes        lda  #1
 
     sub process_assembler_directive(uword directive, uword operand) -> ubyte {
         ; we only recognise .byte and .str right now
-        string.lower(directive)
+        void string.lower(directive)
         if string.compare(directive, ".byte")==0 {
             if operand {
                 ubyte length = conv.any2uword(operand)
