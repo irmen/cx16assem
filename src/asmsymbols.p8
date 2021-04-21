@@ -15,7 +15,7 @@
 
 
 symbols_dt {
-    ; datatypes of the values in the symboltable
+    ; old_datatypes of the old_values in the symboltable
     const ubyte dt_ubyte = 1
     const ubyte dt_uword = 2
     const ubyte dt_ubyte_placeholder = 3
@@ -31,19 +31,11 @@ symbols_dt {
 ;   linear scan symbol lookup (slow)
 
 symbols {
-    const ubyte max_entries = 128
-    uword[max_entries] symbolptrs
-    uword[max_entries] values
-    ubyte[max_entries] datatypes
-    ubyte num_symbols
-
-
     ; SUBROUTINE: init
     ; PURPOSE: call to clear the symbol table for initial or subsequent use.
     ; ARGS: -
     ; RETURNS: -
     sub init() {
-        num_symbols = 0
         hashtable.init()
     }
 
@@ -52,7 +44,7 @@ symbols {
     ; ARGS: -
     ; RETURNS: uword, the number of symbols.
     inline sub numsymbols() -> uword {
-        return num_symbols
+        return hashtable.num_entries
     }
 
     ; SUBROUTINE: setvalue
@@ -63,7 +55,7 @@ symbols {
     ;       datatype = symbols_dt.dt_ubyte or symbols_dt.dt_uword to specify the datatype of the value.
     ; RETURNS: success boolean.
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
-        if num_symbols>=max_entries {
+        if hashtable.num_entries>=hashtable.old_max_entries {
             txt.print("\n?symbol table full\n")
             return false
         }
@@ -86,13 +78,6 @@ symbols {
         }
 
         hashtable.add_entry(hash, symbol, value, datatype)
-        ; TODO make use of an actual hashtable
-
-        symbolptrs[num_symbols] = hashtable.entrybuffer
-        hashtable.entrybuffer += string.copy(symbol, hashtable.entrybuffer) + 1
-        values[num_symbols] = value
-        datatypes[num_symbols] = datatype
-        num_symbols++
         return true
     }
 
@@ -118,23 +103,23 @@ symbols {
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
     sub getvalue(uword symbol) -> ubyte {
-        if num_symbols {
+        if hashtable.num_entries==0
+            return false
 
-            ubyte hash = hashtable.calc_hash(symbol)
-            if_cs {
-                txt.print("\n?hash error name too long\n")
-                return false
-            }
+        ubyte hash = hashtable.calc_hash(symbol)
+        if_cs {
+            txt.print("\n?hash error name too long\n")
+            return false
+        }
 
-            ; TODO make use of an actual hashtable
-            ubyte ix
-            ; note: must search last-to-first to use the latest registration before earlier ones.
-            for ix in num_symbols-1 downto 0 {
-                if string.compare(symbol, symbolptrs[ix]) == 0 {
-                    cx16.r0 = values[ix]
-                    cx16.r1 = datatypes[ix]
-                    return true
-                }
+        ; TODO make use of an actual hashtable
+        ubyte ix
+        ; note: must search last-to-first to use the latest registration before earlier ones.
+        for ix in hashtable.num_entries-1 downto 0 {
+            if string.compare(symbol, hashtable.old_symbolptrs[ix]) == 0 {
+                cx16.r0 = hashtable.old_values[ix]
+                cx16.r1 = hashtable.old_datatypes[ix]
+                return true
             }
         }
         return false
@@ -155,33 +140,33 @@ symbols {
 
 
     ; SUBROUTINE: dump
-    ; PURPOSE: prints the known symbols and their values
+    ; PURPOSE: prints the known symbols and their old_values
     ; ARGS / RETURNS: -
     sub dump(uword num_lines) {
         ; TODO rewrite this for actual hashtable dump once that works
         txt.print("\nsymboltable contains ")
-        txt.print_ub(num_symbols)
+        txt.print_ub(hashtable.num_entries)
         txt.print(" entries:\n")
-        if num_symbols {
-            if num_lines >= num_symbols
-                num_lines = num_symbols
-            if num_lines != num_symbols {
+        if hashtable.num_entries {
+            if num_lines >= hashtable.num_entries
+                num_lines = hashtable.num_entries
+            if num_lines != hashtable.num_entries {
                 txt.print("(displaying only the last ")
                 txt.print_uw(num_lines)
                 txt.print(")\n")
             }
-            ubyte limit = (num_symbols - num_lines) as ubyte
+            ubyte limit = (hashtable.num_entries - num_lines) as ubyte
             ubyte ix
-            for ix in num_symbols-1 downto limit {
+            for ix in hashtable.num_entries-1 downto limit {
                 txt.print("  ")
-                if datatypes[ix]==symbols_dt.dt_ubyte {
+                if hashtable.old_datatypes[ix]==symbols_dt.dt_ubyte {
                     txt.print("  ")
-                    txt.print_ubhex(lsb(values[ix]), true)
+                    txt.print_ubhex(lsb(hashtable.old_values[ix]), true)
                 }
                 else
-                    txt.print_uwhex(values[ix], true)
+                    txt.print_uwhex(hashtable.old_values[ix], true)
                 txt.print(" = ")
-                txt.print(symbolptrs[ix])
+                txt.print(hashtable.old_symbolptrs[ix])
                 txt.nl()
             }
         }
@@ -196,16 +181,27 @@ hashtable {
     const ubyte max_name_len = 31       ; excluding the terminating 0
     const ubyte num_buckets = 128
     const ubyte max_entries_per_bucket = 8      ; TODO adjust if too low?
-    const uword entrybuffer_size = $4000         ; TODO adjust later, to not overwrite IO beginning at $9f00!
+    const uword entrybuffer_size = $4000        ; TODO adjust later, to not overwrite IO beginning at $9f00!
     ubyte[num_buckets] bucket_entry_counts
     uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
-    uword entrybuffer
     ubyte num_entries
+    uword entrybuffer   ; the entry buffer is a large block of memory in which the entries are stored.
+                        ; an entry consists of:
+                        ;  *    2 BYTES: value
+                        ;  *     1 BYTE: datatype
+                        ;  * 2-32 BYTES: symbolname (terminated with 0)
+
+    ; TODO old stuff:
+    const ubyte old_max_entries = 128
+    uword[old_max_entries] old_symbolptrs
+    uword[old_max_entries] old_values
+    ubyte[old_max_entries] old_datatypes
+
 
     sub init() {
         entrybuffer = memory("entrybuffer", entrybuffer_size)   ; reset entrybuffer
         sys.memset(&bucket_entry_counts, num_buckets, 0)
-        num_entries=0
+        num_entries = 0
 
         txt.print("memtop=")
         txt.print_uwhex(sys.progend(), true)
@@ -221,6 +217,14 @@ hashtable {
             txt.print("\n?hash bucket full, choose another symbol name\n")
             return false
         }
+
+
+        ; TODO make use of an actual hashtable
+        old_symbolptrs[num_entries] = entrybuffer
+        entrybuffer += string.copy(symbol, entrybuffer) + 1
+        old_values[num_entries] = value
+        old_datatypes[num_entries] = datatype
+
         num_entries++
         return true
     }
