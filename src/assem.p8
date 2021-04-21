@@ -107,6 +107,11 @@ main {
             txt.print(" (")
             txt.print_uw(symbols.numsymbols())
             txt.print(" symbols)\n")
+
+            ; TODO weg zodra phase1 hashtable volledig werkt incl updaten (dus geen dubbelen meer):
+            symbols.dump(20)
+            sys.exit(1)
+
             parser.start_phase(2)
             success = parse_file(filename)
         }

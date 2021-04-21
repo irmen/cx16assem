@@ -61,19 +61,20 @@ symbols {
             return false
         }
 
-        if hashtable.existing_entry(hash, symbol) {
+        uword existing_entry_ptr = hashtable.find_entry_in_bucket(hash, symbol)
+        if existing_entry_ptr {
             if lsb(cx16.r1) != symbols_dt.dt_uword_placeholder and lsb(cx16.r1) != symbols_dt.dt_ubyte_placeholder {
                 txt.print("\n?symbol already defined\n")
                 return false
             }
 
-            ; TODO update the entry!!
-            ; hashtable.update_entry(hash, symbol, value, datatype)
-            ; return true
+            ; update the existing entry
+            pokew(existing_entry_ptr, value)
+            poke(existing_entry_ptr+2, datatype)
+            return true
         }
 
-        hashtable.add_entry(hash, symbol, value, datatype)
-        return true
+        return hashtable.add_entry(hash, symbol, value, datatype)
     }
 
     ; SUBROUTINE: setvalue2
@@ -98,25 +99,17 @@ symbols {
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
     sub getvalue(uword symbol) -> ubyte {
-        if hashtable.num_entries==0
-            return false
-
         ubyte hash = hashtable.calc_hash(symbol)
         if_cs {
             txt.print("\n?hash error name too long\n")
             return false
         }
 
-        ; TODO make use of an actual hashtable
-        ubyte ix
-        ; note: must search last-to-first to use the latest registration before earlier ones.
-        for ix in (hashtable.num_entries-1) downto 0 {
-            uword entryaddr = peekw(hashtable.bucket_entry_pointers+ix*2)
-            if string.compare(symbol, entryaddr+3) == 0 {
-                cx16.r0 = peekw(entryaddr)
-                cx16.r1 = peek(entryaddr+2)
-                return true
-            }
+        uword entry_ptr = hashtable.find_entry_in_bucket(hash, symbol)
+        if entry_ptr {
+            cx16.r0 = peekw(entry_ptr)
+            cx16.r1 = peek(entry_ptr+2)
+            return true
         }
         return false
     }
@@ -150,20 +143,29 @@ symbols {
                 txt.print_uw(num_lines)
                 txt.print(")\n")
             }
-            ubyte limit = (hashtable.num_entries - num_lines) as ubyte
-            ubyte ix
-            for ix in (hashtable.num_entries-1)*2 downto limit*2 step -2 {
-                uword entry_addr = peekw(hashtable.bucket_entry_pointers+ix)
-                txt.print("  ")
-                if peek(entry_addr+2)==symbols_dt.dt_ubyte {
-                    txt.print("  ")
-                    txt.print_ubhex(peek(entry_addr), true)
+
+            ubyte bk
+            for bk in 0 to hashtable.num_buckets-1 {
+                ubyte bucketcount = hashtable.bucket_entry_counts[bk]
+                if bucketcount {
+                    ubyte ix
+                    for ix in 0 to bucketcount-1 {
+                        uword entryptr = peekw(hashtable.bucket_entry_pointers + bk*hashtable.max_entries_per_bucket*2 + ix*2)
+                        txt.print("  ")
+                        if peek(entryptr+2)==symbols_dt.dt_ubyte {
+                            txt.print("  ")
+                            txt.print_ubhex(peek(entryptr), true)
+                        } else {
+                            txt.print_uwhex(peekw(entryptr), true)
+                        }
+                        txt.print(" = ")
+                        txt.print(entryptr+3)
+                        txt.nl()
+                        num_lines--
+                        if num_lines==0
+                            return
+                    }
                 }
-                else
-                    txt.print_uwhex(peekw(entry_addr), true)
-                txt.print(" = ")
-                txt.print(entry_addr+3)
-                txt.nl()
             }
         }
     }
@@ -201,8 +203,8 @@ hashtable {
 
     sub add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> ubyte {
         ; NOTE: this routine assumes the symbol DOES NOT EXIST in the table yet!
-        bucket_entry_counts[hash] ++
-        if bucket_entry_counts[hash] > max_entries_per_bucket {
+        ubyte bucketcount = bucket_entry_counts[hash]
+        if bucketcount > max_entries_per_bucket {
             txt.print("\n?hash bucket full, choose another symbol name\n")
             return false
         }
@@ -211,22 +213,25 @@ hashtable {
             return false
         }
 
-        ; TODO make use of an actual hashtable
-        pokew(bucket_entry_pointers+num_entries*2, entrybufferptr)
+        ; actually add it to the bucket list
+        pokew(bucket_entry_pointers + hash*max_entries_per_bucket*2 + bucketcount*2, entrybufferptr)
         pokew(entrybufferptr, value)
         entrybufferptr += 2
         poke(entrybufferptr, datatype)
         entrybufferptr++
         entrybufferptr += string.copy(symbol, entrybufferptr) + 1
 
+        bucket_entry_counts[hash]++
         num_entries++
         return true
     }
 
-    sub existing_entry(ubyte hash, uword symbol) -> ubyte {
-        if bucket_entry_counts[hash]
-            return symbols.getvalue(symbol)  ; TODO use hashtable
-        return false
+    sub find_entry_in_bucket(ubyte hash, uword symbol) -> uword {
+        ubyte bucketcount = bucket_entry_counts[hash]
+        if bucketcount==0
+            return $0000
+
+        return 0 ; TODO search bucket list
     }
 
     ; calculate a reasonable byte hash code 0..127 (by adding all the characters and eoring with the length)
