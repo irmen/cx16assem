@@ -55,11 +55,6 @@ symbols {
     ;       datatype = symbols_dt.dt_ubyte or symbols_dt.dt_uword to specify the datatype of the value.
     ; RETURNS: success boolean.
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
-        if hashtable.num_entries>=hashtable.old_max_entries {
-            txt.print("\n?symbol table full\n")
-            return false
-        }
-
         ubyte hash = hashtable.calc_hash(symbol)
         if_cs {
             txt.print("\n?hash error name too long\n")
@@ -115,10 +110,11 @@ symbols {
         ; TODO make use of an actual hashtable
         ubyte ix
         ; note: must search last-to-first to use the latest registration before earlier ones.
-        for ix in hashtable.num_entries-1 downto 0 {
-            if string.compare(symbol, peekw(hashtable.bucket_entry_pointers+ix*2)+3) == 0 {
-                cx16.r0 = hashtable.old_values[ix]
-                cx16.r1 = hashtable.old_datatypes[ix]
+        for ix in (hashtable.num_entries-1) downto 0 {
+            uword entryaddr = peekw(hashtable.bucket_entry_pointers+ix*2)
+            if string.compare(symbol, entryaddr+3) == 0 {
+                cx16.r0 = peekw(entryaddr)
+                cx16.r1 = peek(entryaddr+2)
                 return true
             }
         }
@@ -143,7 +139,6 @@ symbols {
     ; PURPOSE: prints the known symbols and their old_values
     ; ARGS / RETURNS: -
     sub dump(uword num_lines) {
-        ; TODO rewrite this for actual hashtable dump once that works
         txt.print("\nsymboltable contains ")
         txt.print_ub(hashtable.num_entries)
         txt.print(" entries:\n")
@@ -157,16 +152,17 @@ symbols {
             }
             ubyte limit = (hashtable.num_entries - num_lines) as ubyte
             ubyte ix
-            for ix in hashtable.num_entries-1 downto limit {
+            for ix in (hashtable.num_entries-1)*2 downto limit*2 step -2 {
+                uword entry_addr = peekw(hashtable.bucket_entry_pointers+ix)
                 txt.print("  ")
-                if hashtable.old_datatypes[ix]==symbols_dt.dt_ubyte {
+                if peek(entry_addr+2)==symbols_dt.dt_ubyte {
                     txt.print("  ")
-                    txt.print_ubhex(lsb(hashtable.old_values[ix]), true)
+                    txt.print_ubhex(peek(entry_addr), true)
                 }
                 else
-                    txt.print_uwhex(hashtable.old_values[ix], true)
+                    txt.print_uwhex(peekw(entry_addr), true)
                 txt.print(" = ")
-                txt.print(peekw(hashtable.bucket_entry_pointers+ix*2)+3)
+                txt.print(entry_addr+3)
                 txt.nl()
             }
         }
@@ -185,20 +181,16 @@ hashtable {
     ubyte[num_buckets] bucket_entry_counts
     uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
     ubyte num_entries
-    uword entrybuffer   ; the entry buffer is a large block of memory in which the entries are stored.
-                        ; an entry consists of:
-                        ;  *    2 BYTES: value
-                        ;  *     1 BYTE: datatype
-                        ;  * 2-32 BYTES: symbolname (terminated with 0)
-
-    ; TODO old stuff:
-    const ubyte old_max_entries = 128
-    uword[old_max_entries] old_values
-    ubyte[old_max_entries] old_datatypes
-
+    uword entrybuffer = memory("entrybuffer", entrybuffer_size)
+        ; the entry buffer is a large block of memory in which the entries are stored.
+        ; an entry consists of:
+        ;  *    2 BYTES: value
+        ;  *     1 BYTE: datatype
+        ;  * 2-32 BYTES: symbolname (terminated with 0)
+    uword entrybufferptr
 
     sub init() {
-        entrybuffer = memory("entrybuffer", entrybuffer_size)   ; reset entrybuffer
+        entrybufferptr = entrybuffer
         sys.memset(&bucket_entry_counts, num_buckets, 0)
         num_entries = 0
 
@@ -209,21 +201,23 @@ hashtable {
 
     sub add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> ubyte {
         ; NOTE: this routine assumes the symbol DOES NOT EXIST in the table yet!
-        ; TODO actually store the symbol in the table as well
-        ; TODO give error message and return false, if entrybuffer is full
         bucket_entry_counts[hash] ++
         if bucket_entry_counts[hash] > max_entries_per_bucket {
             txt.print("\n?hash bucket full, choose another symbol name\n")
             return false
         }
-
+        if (entrybufferptr - entrybuffer) >= entrybuffer_size {
+            txt.print("\n?symbol table full, use less symbols...\n")
+            return false
+        }
 
         ; TODO make use of an actual hashtable
-        pokew(bucket_entry_pointers+num_entries*2, entrybuffer)
-        entrybuffer += 3 ; TODO for now skip the value and datatype bytes
-        entrybuffer += string.copy(symbol, entrybuffer) + 1
-        old_values[num_entries] = value
-        old_datatypes[num_entries] = datatype
+        pokew(bucket_entry_pointers+num_entries*2, entrybufferptr)
+        pokew(entrybufferptr, value)
+        entrybufferptr += 2
+        poke(entrybufferptr, datatype)
+        entrybufferptr++
+        entrybufferptr += string.copy(symbol, entrybufferptr) + 1
 
         num_entries++
         return true
