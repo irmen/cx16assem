@@ -116,7 +116,7 @@ symbols {
         ubyte ix
         ; note: must search last-to-first to use the latest registration before earlier ones.
         for ix in hashtable.num_entries-1 downto 0 {
-            if string.compare(symbol, hashtable.old_symbolptrs[ix]) == 0 {
+            if string.compare(symbol, peekw(hashtable.bucket_entry_pointers+ix*2)+3) == 0 {
                 cx16.r0 = hashtable.old_values[ix]
                 cx16.r1 = hashtable.old_datatypes[ix]
                 return true
@@ -166,7 +166,7 @@ symbols {
                 else
                     txt.print_uwhex(hashtable.old_values[ix], true)
                 txt.print(" = ")
-                txt.print(hashtable.old_symbolptrs[ix])
+                txt.print(peekw(hashtable.bucket_entry_pointers+ix*2)+3)
                 txt.nl()
             }
         }
@@ -193,7 +193,6 @@ hashtable {
 
     ; TODO old stuff:
     const ubyte old_max_entries = 128
-    uword[old_max_entries] old_symbolptrs
     uword[old_max_entries] old_values
     ubyte[old_max_entries] old_datatypes
 
@@ -220,7 +219,8 @@ hashtable {
 
 
         ; TODO make use of an actual hashtable
-        old_symbolptrs[num_entries] = entrybuffer
+        pokew(bucket_entry_pointers+num_entries*2, entrybuffer)
+        entrybuffer += 3 ; TODO for now skip the value and datatype bytes
         entrybuffer += string.copy(symbol, entrybuffer) + 1
         old_values[num_entries] = value
         old_datatypes[num_entries] = datatype
