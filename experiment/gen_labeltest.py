@@ -25,7 +25,7 @@ labels = [create_labelname(idx) for idx in range(maximum)]
 
 def write_asm():
     with open("labeltest.asm", "wt") as out:
-        out.write("*=$6000\n")
+        out.write("*=$c000\n")
         for idx in range(maximum):
             out.write(labels[idx]+"\n")
             out.write(f"\tJMP  {labels[maximum-idx-1]}\n")
@@ -43,5 +43,5 @@ def test_strategy(labels):
         print(idx, label)
 
 
-test_strategy(labels)
-# write_asm()
+# test_strategy(labels)
+write_asm()

@@ -71,14 +71,6 @@ symbols {
             when @(existing_entry_ptr) {
                 symbols_dt.dt_uword_placeholder, symbols_dt.dt_ubyte_placeholder -> {
                     ; update the existing entry
-
-                    ; TODO
-                    txt.print("!update: ")
-                    txt.print_ub(hash)
-                    txt.spc()
-                    txt.print(symbol)
-                    txt.nl()
-
                     @(existing_entry_ptr) = datatype
                     pokew(existing_entry_ptr+1, value)
                     return true
@@ -179,13 +171,13 @@ symbols {
     ; ARGS / RETURNS: -
     sub dump(uword num_lines) {
         txt.print("\nsymboltable contains ")
-        txt.print_ub(hashtable.num_entries)
+        txt.print_uw(hashtable.num_entries)
         txt.print(" entries:\n")
         if hashtable.num_entries {
             if num_lines >= hashtable.num_entries
                 num_lines = hashtable.num_entries
             if num_lines != hashtable.num_entries {
-                txt.print("(displaying only the last ")
+                txt.print("(listing limited to ")
                 txt.print_uw(num_lines)
                 txt.print(")\n")
             }
@@ -196,7 +188,17 @@ symbols {
                 if bucketcount {
                     ubyte ix
                     for ix in 0 to bucketcount-1 {
-                        uword entryptr = peekw(hashtable.bucket_entry_pointers + bk*hashtable.max_entries_per_bucket*2 + ix*2)
+                        ; TODO optimize
+                        uword bucketptr = hashtable.bucket_entry_pointers + ix*2
+                        bucketptr += (bk as uword)*(hashtable.max_entries_per_bucket*2)
+                        uword entryptr = peekw(bucketptr)
+
+                        ; to dump the bucket number and entry addr as well for debug:
+;                        txt.print("  #")
+;                        txt.print_ub(bk)
+;                        txt.column(7)
+;                        txt.print_uwhex(entryptr, true)
+
                         txt.print("  ")
                         if @(entryptr)==symbols_dt.dt_ubyte {
                             txt.print("  ")
@@ -224,11 +226,11 @@ hashtable {
 
     const ubyte max_name_len = 31       ; excluding the terminating 0
     const ubyte num_buckets = 128
-    const ubyte max_entries_per_bucket = 8      ; TODO adjust if too low?
-    const uword entrybuffer_size = $4000        ; TODO adjust later, to not overwrite IO beginning at $9f00!
+    const ubyte max_entries_per_bucket = 12     ; TODO adjust if too low?
+    const uword entrybuffer_size = $5000        ; TODO adjust later, to not overwrite IO beginning at $9f00!
     ubyte[num_buckets] bucket_entry_counts
     uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
-    ubyte num_entries
+    uword num_entries
     uword entrybuffer = memory("entrybuffer", entrybuffer_size)
         ; the entry buffer is a large block of memory in which the entries are stored.
         ; an entry consists of:
@@ -242,9 +244,10 @@ hashtable {
         sys.memset(&bucket_entry_counts, num_buckets, 0)
         num_entries = 0
 
-        txt.print("memtop=")
-        txt.print_uwhex(sys.progend(), true)
-        txt.nl()
+;      To see what the maximum memory address is used by the assembler:
+;        txt.print("memtop=")
+;        txt.print_uwhex(sys.progend(), true)
+;        txt.nl()
     }
 
     sub add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> ubyte {
@@ -260,7 +263,11 @@ hashtable {
         }
 
         ; actually add it to the bucket list
-        pokew(bucket_entry_pointers + hash*max_entries_per_bucket*2 + bucketcount*2, entrybufferptr)
+
+        ; TODO optimize
+        uword bucketaddr = bucket_entry_pointers + bucketcount*2
+        pokew(bucketaddr + (hash as uword)*(max_entries_per_bucket*2), entrybufferptr)
+
         @(entrybufferptr) = datatype
         entrybufferptr++
         pokew(entrybufferptr, value)
@@ -269,53 +276,22 @@ hashtable {
 
         bucket_entry_counts[hash]++
         num_entries++
-
-        ; TODO
-        txt.print("+added: ")
-        txt.print_ub(hash)
-        txt.spc()
-        txt.print(symbol)
-        txt.nl()
-
         return true
     }
 
     sub find_entry_in_bucket(ubyte hash, uword symbol) -> uword {
         ubyte bucketcount = bucket_entry_counts[hash]
-        if bucketcount==0 {
-
-            txt.print("not found empty bucket: ")
-            txt.print_ub(hash)
-            txt.spc()
-            txt.print(symbol)
-            txt.nl()
-
+        if bucketcount==0
             return $0000
-        }
 
         ; search the symbol in the bucket list
-        uword bucketptrs = hashtable.bucket_entry_pointers + hash*hashtable.max_entries_per_bucket*2
+        uword bucketptrs = hashtable.bucket_entry_pointers + (hash as uword)*(hashtable.max_entries_per_bucket*2)
         ubyte ix
-        for ix in 0 to (bucketcount-1)*2 {
-            uword entryptr = peekw(bucketptrs + ix)
-            if string.compare(symbol, entryptr+3)==0 {
-
-                txt.print("existing in bucket: ")
-                txt.print_ub(hash)
-                txt.spc()
-                txt.print(symbol)
-                txt.nl()
-
+        for ix in 0 to bucketcount-1 {
+            uword entryptr = peekw(bucketptrs + ix*2)
+            if string.compare(symbol, entryptr+3)==0
                 return entryptr
-            }
         }
-
-        txt.print("not found in bucket: ")
-        txt.print_ub(hash)
-        txt.spc()
-        txt.print(symbol)
-        txt.nl()
-
         return $0000
     }
 

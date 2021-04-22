@@ -1,3 +1,5 @@
+.gradle
+.idea
 *.prg
 *.asm
 *.vice-mon-list

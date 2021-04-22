@@ -162,6 +162,7 @@ main {
                 return false
             }
         }
+        cx16.r15 = line
         return true
     }
 
