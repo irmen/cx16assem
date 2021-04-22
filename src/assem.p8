@@ -261,6 +261,12 @@ parser {
         if valid_operand {
             if str_is1(word_addrs[0], '*') {
                 program_counter = cx16.r15
+
+                ; TODO get rid of this warning once we no longer assemble to system memory directly
+                if program_counter < $9000
+                    txt.print("\n\n\x12warning: pc is <$9000 which is system memory used by the assembler!\nrisk of data corruption and weird errors!\x92\nthis problem will probably be fixed in a future version!\n\n")
+
+
                 if program_counter<pc_min
                     pc_min = program_counter
                 if program_counter>pc_max
