@@ -18,6 +18,8 @@ Type 'make emu' to immediately boot the assembler in the Commander X16 emulator.
 
 ## Usage
 
+*Note:* requires using a SD-card image to be mounted as drive 8 in the emulator, doesn't work currently on a host filesystem passthrough.
+
 Usage should be self-explanatory.
 When started, the assembler prints the available commands.
 After successfully assembling a source file, a summary will be printed. 
@@ -26,8 +28,20 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 
 At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb for now.
 
+## Features
+
+- read source files (up to 62 Kb) straight from disk  (sdcard in the emulator)
+- write output as PRG file to disk (sdcard in the emulator)
+- set program counter with "* = $9000"
+- numbers in decimal 12345, hex $abcd, binary %1010011
+- symbolic labels
+- define data with ``.byte  1,2,3,4`` and ``.str  "hello!"`` 
+
+
 ## Todo
 
+- can we get it to work on a host mounted filesystem in the emulator?
+  
 - write output machine code to upper banked RAM instead of main memory, so we can assemble larger programs,
   and it doesn't potentially overwrite the assembler itself or the symbol table in system ram.
   (this also means we can't simply use SAVE routine anymore)
@@ -40,10 +54,14 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 
 ### Maybe some day:
 
+- include / incbin  to read in separate files
+
 - relative labels (+ / -)
 
-- simple expressions
+- simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 
 - local scoped labels
 
 - macros
+
+- better error descriptions?
