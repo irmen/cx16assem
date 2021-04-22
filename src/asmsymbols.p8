@@ -3,7 +3,13 @@
 ; SYMBOL TABLE.
 ; Capability: store names with their value (ubyte or uword, or temp placeholder for them).
 ; External API:
-;   subroutines: init, numsymbols, setvalue, setvalue2, getvalue, getvalue2, dump
+;   subroutines:
+;       init
+;       numsymbols
+;       setvalue  +  setvalue2
+;       setvalue_new  +  setvalue2_new
+;       getvalue  +  getvalue2
+;       dump
 ;   (see the default implementation below for the exact signature of these routines)
 ;   it uses the datatype constants defined in symbols_dt.
 ;
@@ -48,11 +54,10 @@ symbols {
     }
 
     ; SUBROUTINE: setvalue
-    ; PURPOSE: adds a new symbol and its value to the table.
-    ;          You can't overwrite an existing symbol (unless it's a placeholder).
-    ; ARGS: symbol = address of the symbol name (0-terminated string),
+    ; PURPOSE: adds a symbol + value to the table, or updates existing (only if it's still a placeholder value)
+    ; ARGS: symbol = address of the symbol (0-terminated string),
     ;       value = byte or word value for this symbol,
-    ;       datatype = symbols_dt.dt_ubyte or symbols_dt.dt_uword to specify the datatype of the value.
+    ;       datatype = one of the datatype constants for this value.
     ; RETURNS: success boolean.
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
         ubyte hash = hashtable.calc_hash(symbol)
@@ -66,6 +71,14 @@ symbols {
             when @(existing_entry_ptr) {
                 symbols_dt.dt_uword_placeholder, symbols_dt.dt_ubyte_placeholder -> {
                     ; update the existing entry
+
+                    ; TODO
+                    txt.print("!update: ")
+                    txt.print_ub(hash)
+                    txt.spc()
+                    txt.print(symbol)
+                    txt.nl()
+
                     @(existing_entry_ptr) = datatype
                     pokew(existing_entry_ptr+1, value)
                     return true
@@ -81,18 +94,47 @@ symbols {
         return hashtable.add_entry(hash, symbol, value, datatype)
     }
 
-    ; SUBROUTINE: setvalue2
-    ; PURPOSE: adds a new symbol and its value to the table.
-    ;          You can't overwrite an existing symbol (unless it's a placeholder).
-    ; ARGS: symbol = address of the symbol name,
-    ;       length = length of the symbol name,
+    ; SUBROUTINE: setvalue_newsymbol
+    ; PURPOSE: adds a new symbol + value to the table.  ASSUMES THE SYMBOL IS NOT YET IN THE TABLE!
+    ; ARGS: symbol = address of the symbol (0-terminated string),
     ;       value = byte or word value for this symbol,
-    ;       datatype = symbols_dt.dt_ubyte or symbols_dt.dt_uword to specify the datatype of the value.
+    ;       datatype = one of the datatype constants for the value.
+    ; RETURNS: success boolean.
+    sub setvalue_newsymbol(uword symbol, uword value, ubyte datatype) -> ubyte {
+        ubyte hash = hashtable.calc_hash(symbol)
+        if_cs {
+            txt.print("\n?hash error name too long\n")
+            return false
+        }
+        return hashtable.add_entry(hash, symbol, value, datatype)
+    }
+
+    ; SUBROUTINE: setvalue2
+    ; PURPOSE: adds a symbol + value to the table, or updates existing (only if it's still a placeholder value)
+    ; ARGS: symbol = address of the symbol,
+    ;       length = length of the symbol,
+    ;       value = byte or word value for this symbol,
+    ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
     sub setvalue2(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
         ubyte tc = @(symbol+length)
         @(symbol+length) = 0
         ubyte result = setvalue(symbol, value, datatype)
+        @(symbol+length) = tc
+        return result
+    }
+
+    ; SUBROUTINE: setvalue2_newsymbol
+    ; PURPOSE: adds a new symbol + value to the table. ASSUMES THE SYMBOL IS NOT YET IN THE TABLE!
+    ; ARGS: symbol = address of the symbol,
+    ;       length = length of the symbol,
+    ;       value = byte or word value for this symbol,
+    ;       datatype = one of the datatype constants for the value.
+    ; RETURNS: success boolean.
+    sub setvalue2_newsymbol(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
+        ubyte tc = @(symbol+length)
+        @(symbol+length) = 0
+        ubyte result = setvalue_newsymbol(symbol, value, datatype)
         @(symbol+length) = tc
         return result
     }
@@ -119,7 +161,7 @@ symbols {
     }
 
     ; SUBROUTINE: getvalue2
-    ; PURPOSE: retrieve the value of a symbol. Name limited by given length.
+    ; PURPOSE: retrieve the value of a symbol. Name limited by given length instead of 0-byte
     ; ARGS: symbol = address of the symbol name, length = length of the symbol name
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
@@ -227,22 +269,53 @@ hashtable {
 
         bucket_entry_counts[hash]++
         num_entries++
+
+        ; TODO
+        txt.print("+added: ")
+        txt.print_ub(hash)
+        txt.spc()
+        txt.print(symbol)
+        txt.nl()
+
         return true
     }
 
     sub find_entry_in_bucket(ubyte hash, uword symbol) -> uword {
         ubyte bucketcount = bucket_entry_counts[hash]
-        if bucketcount==0
+        if bucketcount==0 {
+
+            txt.print("not found empty bucket: ")
+            txt.print_ub(hash)
+            txt.spc()
+            txt.print(symbol)
+            txt.nl()
+
             return $0000
+        }
 
         ; search the symbol in the bucket list
         uword bucketptrs = hashtable.bucket_entry_pointers + hash*hashtable.max_entries_per_bucket*2
         ubyte ix
         for ix in 0 to (bucketcount-1)*2 {
             uword entryptr = peekw(bucketptrs + ix)
-            if string.compare(symbol, entryptr+3)==0
+            if string.compare(symbol, entryptr+3)==0 {
+
+                txt.print("existing in bucket: ")
+                txt.print_ub(hash)
+                txt.spc()
+                txt.print(symbol)
+                txt.nl()
+
                 return entryptr
+            }
         }
+
+        txt.print("not found in bucket: ")
+        txt.print_ub(hash)
+        txt.spc()
+        txt.print(symbol)
+        txt.nl()
+
         return $0000
     }
 
