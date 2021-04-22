@@ -188,10 +188,7 @@ symbols {
                 if bucketcount {
                     ubyte ix
                     for ix in 0 to bucketcount-1 {
-                        ; TODO optimize
-                        uword bucketptr = hashtable.bucket_entry_pointers + ix*2
-                        bucketptr += (bk as uword)*(hashtable.max_entries_per_bucket*2)
-                        uword entryptr = peekw(bucketptr)
+                        uword entryptr = peekw(hashtable.bucket_entry_pointers + (bk as uword)*hashtable.max_entries_per_bucket*2 + ix*2)
 
                         ; to dump the bucket number and entry addr as well for debug:
 ;                        txt.print("  #")
@@ -263,11 +260,7 @@ hashtable {
         }
 
         ; actually add it to the bucket list
-
-        ; TODO optimize
-        uword bucketaddr = bucket_entry_pointers + bucketcount*2
-        pokew(bucketaddr + (hash as uword)*(max_entries_per_bucket*2), entrybufferptr)
-
+        pokew(bucket_entry_pointers + bucketcount*2 + (hash as uword)*max_entries_per_bucket*2, entrybufferptr)
         @(entrybufferptr) = datatype
         entrybufferptr++
         pokew(entrybufferptr, value)
@@ -285,7 +278,7 @@ hashtable {
             return $0000
 
         ; search the symbol in the bucket list
-        uword bucketptrs = hashtable.bucket_entry_pointers + (hash as uword)*(hashtable.max_entries_per_bucket*2)
+        uword bucketptrs = hashtable.bucket_entry_pointers + (hash as uword)*hashtable.max_entries_per_bucket*2
         ubyte ix
         for ix in 0 to bucketcount-1 {
             uword entryptr = peekw(bucketptrs + ix*2)
