@@ -21,7 +21,7 @@
 
 
 symbols_dt {
-    ; old_datatypes of the old_values in the symboltable
+    ; datatypes of the values in the symboltable
     const ubyte dt_ubyte = 1
     const ubyte dt_uword = 2
     const ubyte dt_ubyte_placeholder = 3
@@ -167,7 +167,7 @@ symbols {
 
 
     ; SUBROUTINE: dump
-    ; PURPOSE: prints the known symbols and their old_values
+    ; PURPOSE: prints the known symbols and their values
     ; ARGS / RETURNS: -
     sub dump(uword num_lines) {
         txt.print("\nsymboltable contains ")
