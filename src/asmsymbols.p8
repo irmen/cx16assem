@@ -63,17 +63,21 @@ symbols {
 
         uword existing_entry_ptr = hashtable.find_entry_in_bucket(hash, symbol)
         if existing_entry_ptr {
-            if lsb(cx16.r1) != symbols_dt.dt_uword_placeholder and lsb(cx16.r1) != symbols_dt.dt_ubyte_placeholder {
-                txt.print("\n?symbol already defined\n")
-                return false
+            when @(existing_entry_ptr) {
+                symbols_dt.dt_uword_placeholder, symbols_dt.dt_ubyte_placeholder -> {
+                    ; update the existing entry
+                    @(existing_entry_ptr) = datatype
+                    pokew(existing_entry_ptr+1, value)
+                    return true
+                }
+                else -> {
+                    txt.print("\n?symbol already defined\n")
+                    return false
+                }
             }
-
-            ; update the existing entry
-            pokew(existing_entry_ptr, value)
-            poke(existing_entry_ptr+2, datatype)
-            return true
         }
 
+        ; add new entry
         return hashtable.add_entry(hash, symbol, value, datatype)
     }
 
@@ -107,8 +111,8 @@ symbols {
 
         uword entry_ptr = hashtable.find_entry_in_bucket(hash, symbol)
         if entry_ptr {
-            cx16.r0 = peekw(entry_ptr)
-            cx16.r1 = peek(entry_ptr+2)
+            cx16.r1 = @(entry_ptr)
+            cx16.r0 = peekw(entry_ptr+1)
             return true
         }
         return false
@@ -152,11 +156,11 @@ symbols {
                     for ix in 0 to bucketcount-1 {
                         uword entryptr = peekw(hashtable.bucket_entry_pointers + bk*hashtable.max_entries_per_bucket*2 + ix*2)
                         txt.print("  ")
-                        if peek(entryptr+2)==symbols_dt.dt_ubyte {
+                        if @(entryptr)==symbols_dt.dt_ubyte {
                             txt.print("  ")
-                            txt.print_ubhex(peek(entryptr), true)
+                            txt.print_ubhex(@(entryptr+1), true)
                         } else {
-                            txt.print_uwhex(peekw(entryptr), true)
+                            txt.print_uwhex(peekw(entryptr+1), true)
                         }
                         txt.print(" = ")
                         txt.print(entryptr+3)
@@ -186,8 +190,8 @@ hashtable {
     uword entrybuffer = memory("entrybuffer", entrybuffer_size)
         ; the entry buffer is a large block of memory in which the entries are stored.
         ; an entry consists of:
-        ;  *    2 BYTES: value
         ;  *     1 BYTE: datatype
+        ;  *    2 BYTES: value
         ;  * 2-32 BYTES: symbolname (terminated with 0)
     uword entrybufferptr
 
@@ -204,7 +208,7 @@ hashtable {
     sub add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> ubyte {
         ; NOTE: this routine assumes the symbol DOES NOT EXIST in the table yet!
         ubyte bucketcount = bucket_entry_counts[hash]
-        if bucketcount > max_entries_per_bucket {
+        if bucketcount >= max_entries_per_bucket {
             txt.print("\n?hash bucket full, choose another symbol name\n")
             return false
         }
@@ -215,10 +219,10 @@ hashtable {
 
         ; actually add it to the bucket list
         pokew(bucket_entry_pointers + hash*max_entries_per_bucket*2 + bucketcount*2, entrybufferptr)
+        @(entrybufferptr) = datatype
+        entrybufferptr++
         pokew(entrybufferptr, value)
         entrybufferptr += 2
-        poke(entrybufferptr, datatype)
-        entrybufferptr++
         entrybufferptr += string.copy(symbol, entrybufferptr) + 1
 
         bucket_entry_counts[hash]++
@@ -231,7 +235,15 @@ hashtable {
         if bucketcount==0
             return $0000
 
-        return 0 ; TODO search bucket list
+        ; search the symbol in the bucket list
+        uword bucketptrs = hashtable.bucket_entry_pointers + hash*hashtable.max_entries_per_bucket*2
+        ubyte ix
+        for ix in 0 to (bucketcount-1)*2 {
+            uword entryptr = peekw(bucketptrs + ix)
+            if string.compare(symbol, entryptr+3)==0
+                return entryptr
+        }
+        return $0000
     }
 
     ; calculate a reasonable byte hash code 0..127 (by adding all the characters and eoring with the length)
