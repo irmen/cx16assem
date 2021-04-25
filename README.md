@@ -40,6 +40,10 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 
 ## Todo
 
+- more assembler directives such as ".word"
+
+- command to switch to (the rom-based) x16edit to avoid having to swap-load programs all the time
+
 - can we get it to work on a host mounted filesystem in the emulator?
   
 - write output machine code to upper banked RAM instead of main memory, so we can assemble larger programs,
@@ -48,12 +52,10 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
   
 - optimize phase 1, it now does too many things that are actually only needed in phase 2
 
-- use banked RAM instead of VRAM to cache the source file, this means rewriting the i/o routines again,
-  but it will allow loading files larger than 62 Kb
-
 
 ### Maybe some day:
 
+  
 - include / incbin  to read in separate files
 
 - relative labels (+ / -)
