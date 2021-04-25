@@ -35,14 +35,14 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 - set program counter with "* = $9000"
 - numbers in decimal 12345, hex $abcd, binary %1010011
 - symbolic labels
-- define data with ``.byte  1,2,3,4`` and ``.str  "hello!"`` 
+- define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"`` 
 
 
 ## Todo
 
-- more assembler directives such as ".word"
-
 - command to switch to (the rom-based) x16edit to avoid having to swap-load programs all the time
+
+- more assembler directives?
 
 - can we get it to work on a host mounted filesystem in the emulator?
   

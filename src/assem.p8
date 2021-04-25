@@ -242,7 +242,7 @@ parser {
     sub do_assign() -> ubyte {
         ; target is in word_addrs[0], value is in word_addrs[2]   ('=' is in word_addrs[1])
         if not word_addrs[2] {
-            txt.print("?syntax error\n")
+            txt.print("\n?syntax error\n")
             return false
         }
 
@@ -665,63 +665,109 @@ _yes        lda  #1
     }
 
     sub process_assembler_directive(uword directive, uword operand) -> ubyte {
-        ; we only recognise .byte and .str right now
+        ; we recognise .byte, .word and .str right now
         void string.lower(directive)
-        if string.compare(directive, ".byte")==0 {
-            if operand {
-                ubyte length = conv.any2uword(operand)
-                if length {
-                    if msb(cx16.r15) {
-                        txt.print("?byte value too large\n")
-                        return false
-                    }
-                    if phase==2
-                        emit(lsb(cx16.r15))
-                    else
-                        program_counter++
-                    operand += length
-                    operand = str_trimleft(operand)
-                    while @(operand)==',' {
-                        operand++
-                        operand = str_trimleft(operand)
-                        length = conv.any2uword(operand)
-                        if not length
-                            break
-                        if msb(cx16.r15) {
-                            txt.print("?byte value too large\n")
-                            return false
-                        }
+        if operand {
+            if string.compare(directive, ".byte")==0
+                return proces_directive_byte(operand)
+            else if string.compare(directive, ".word")==0
+                return proces_directive_word(operand)
+            else if string.compare(directive, ".str")==0
+                return proces_directive_str(operand)
+        }
+
+        txt.print("\n?syntax error\n")
+        return false
+    }
+
+    sub proces_directive_byte(uword operand) -> ubyte {
+        ubyte length = conv.any2uword(operand)
+        if length {
+            if msb(cx16.r15) {
+                txt.print("?byte value too large\n")
+                return false
+            }
+            if phase==2
+                emit(lsb(cx16.r15))
+            else
+                program_counter++
+            operand += length
+            operand = str_trimleft(operand)
+            while @(operand)==',' {
+                operand++
+                operand = str_trimleft(operand)
+                length = conv.any2uword(operand)
+                if not length
+                    break
+                if msb(cx16.r15) {
+                    txt.print("?byte value too large\n")
+                    return false
+                }
+                if phase==2
+                    emit(lsb(cx16.r15))
+                else
+                    program_counter++
+                operand += length
+            }
+            return true
+        }
+
+        txt.print("\n?syntax error\n")
+        return false
+    }
+
+    sub proces_directive_word(uword operand) -> ubyte {
+        ubyte length = conv.any2uword(operand)
+        if length {
+            if phase==2 {
+                emit(lsb(cx16.r15))
+                emit(msb(cx16.r15))
+            }
+            else
+                program_counter++
+            operand += length
+            operand = str_trimleft(operand)
+            while @(operand)==',' {
+                operand++
+                operand = str_trimleft(operand)
+                length = conv.any2uword(operand)
+                if not length
+                    break
+                if phase==2 {
+                    emit(lsb(cx16.r15))
+                    emit(msb(cx16.r15))
+                }
+                else
+                    program_counter++
+                operand += length
+            }
+            return true
+        }
+
+        txt.print("\n?syntax error\n")
+        return false
+    }
+
+    sub proces_directive_str(uword operand) -> ubyte {
+        if operand[0]=='\"' {
+            operand++
+            ubyte char_idx=0
+            repeat {
+                ubyte char = @(operand+char_idx)
+                when char {
+                    '\"', 0 -> return true
+                    else -> {
                         if phase==2
-                            emit(lsb(cx16.r15))
+                            emit(char)
                         else
                             program_counter++
-                        operand += length
                     }
-                    return true
                 }
-            }
-        }
-        else if string.compare(directive, ".str")==0 {
-            if operand and operand[0]=='\"' {
-                operand++
-                ubyte char_idx=0
-                repeat {
-                    ubyte char = @(operand+char_idx)
-                    when char {
-                        '\"', 0 -> return true
-                        else -> {
-                            if phase==2
-                                emit(char)
-                            else
-                                program_counter++
-                        }
-                    }
-                    char_idx++
-                }
+                char_idx++
             }
         }
 
-        txt.print("?syntax error\n")
+        txt.print("\n?syntax error\n")
         return false
     }
 
