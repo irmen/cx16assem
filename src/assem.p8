@@ -4,6 +4,7 @@
 %import string
 %import asmsymbols
 %import filereader
+%import test_stack
 %zeropage basicsafe
 %option no_sysinit
 
@@ -11,11 +12,7 @@ main {
 
     sub start() {
         str filename = "?" * 20
-
-        symbols.init()
-
-        txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
-        txt.print("enter filename to assemble, $ for list of *.asm files,\n!filename to display file, q to quit: ")
+        print_intro()
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
@@ -26,17 +23,61 @@ main {
                         if filename[1]
                             display_file(&filename+1)
                     }
+                    '#' -> {
+                        if filename[1]
+                            edit_file(&filename+1)
+                        else
+                            edit_file(0)
+                        ;test_stack.test()
+                        print_intro()
+                    }
                     '*', ':' -> {
                         ; avoid loading the first file on the disk
                     }
                     'q' -> return
                     else -> {
+                        symbols.init()
                         file_input(filename)
                         break
                     }
                 }
             }
         }
+    }
+
+    sub print_intro() {
+        txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
+        txt.print("commands: just enter the filename to assemble, or:\n")
+        txt.print(" $ - list the *.asm files on disk,\n")
+        txt.print(" !filename - display the file contents,\n")
+        txt.print(" #filename - start x16edit in rom bank 7 on the file,\n")
+        txt.print(" q - quit to basic.\n")
+    }
+
+    sub edit_file(uword filename) {
+        ; activate x16edit, assumed to be in rom bank 7,
+        ;   see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
+        cx16.rombank(7)
+        if filename {
+            cx16.r0 = filename
+            cx16.r1L = string.length(filename)
+            %asm {{
+                phx
+                ldx  #1
+                ldy  #255
+                jsr  $c003
+                plx
+            }}
+        } else {
+            %asm {{
+                phx
+                ldx  #1
+                ldy  #255
+                jsr  $c000
+                plx
+            }}
+        }
+        cx16.rombank(4)
     }
 
     sub list_asm_files() {
