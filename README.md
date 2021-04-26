@@ -36,11 +36,10 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 - numbers in decimal 12345, hex $abcd, binary %1010011
 - symbolic labels
 - define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"`` 
+- can switch to (the rom-based) x16edit to avoid having to swap-load programs all the time
 
 
 ## Todo
-
-- command to switch to (the rom-based) x16edit to avoid having to swap-load programs all the time
 
 - more assembler directives?
 
@@ -54,7 +53,6 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 
 
 ### Maybe some day:
-
   
 - include / incbin  to read in separate files
 
