@@ -277,6 +277,8 @@ parser {
         txt.print("phase ")
         txt.print_ub(phase)
         txt.spc()
+
+        output.init(ph)
     }
 
     sub process_line() -> ubyte {
@@ -774,7 +776,7 @@ _yes        lda  #1
                 output.emit(msb(cx16.r15))
             }
             else
-                output.inc_pc(0)
+                output.inc_pc(1)        ; increase pc by 2 effectively (a word)
             operand += length
             operand = str_trimleft(operand)
             while @(operand)==',' {
@@ -788,7 +790,7 @@ _yes        lda  #1
                     output.emit(msb(cx16.r15))
                 }
                 else
-                    output.inc_pc(0)
+                    output.inc_pc(1)    ; increase pc by 2 effectively (a word)
                 operand += length
             }
             return true
@@ -983,6 +985,12 @@ output {
     uword program_counter = $ffff
     uword pc_min = $ffff
     uword pc_max = $0000
+
+    sub init(ubyte phase) {
+        ; nothing special yet
+        ; if phase==2, pc_min and pc_max have been set in phase1 to indicate the block of memory
+        ; that is going to be filled with the output, this info could be useful for something
+    }
 
     sub set_pc(uword addr) {
         program_counter = addr
