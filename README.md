@@ -20,8 +20,7 @@ Type 'make emu' to immediately boot the assembler in the Commander X16 emulator.
 
 *Note:* requires using a SD-card image to be mounted as drive 8 in the emulator, doesn't work currently on a host filesystem passthrough.
 
-Usage should be self-explanatory.
-When started, the assembler prints the available commands.
+Usage should be self-explanatory: when started, the assembler prints the available commands.
 After successfully assembling a source file, a summary will be printed. 
 You can then enter the filename to save the program as on disk (will overwrite existing file with the same name!).
 It's always saved in PRG format, so you can load the program again with ``LOAD "NAME",8,1``
@@ -51,8 +50,6 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
   and it doesn't potentially overwrite the assembler itself or the symbol table in system ram.
   (this also means we can't simply use SAVE routine anymore)
   
-- optimize phase 1, it now does too many things that are actually only needed in phase 2
-
 
 ### Maybe some day:
   
