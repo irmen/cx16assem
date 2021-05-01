@@ -182,6 +182,7 @@ main {
         if success {
             print_summary(cx16.r15, output.pc_min, output.pc_max)
             save_program(output.pc_min, output.pc_max)
+            txt.nl()
         }
 
         cx16.rombank(4)     ; switch back to basic rom
@@ -252,31 +253,43 @@ main {
 
     sub save_program(uword start_address, uword end_address) {
 
-        ; TODO TEMPORARY:  copy banked output back to actual system ram to be able to use SAVE routine
-        uword remaining = end_address-start_address
-        uword mem_addr = start_address
-        ubyte bnk
-        for bnk in output.start_output_bank to output.next_output_bank-1 {
-            cx16.rambank(bnk)
-            uword copysize = remaining
-            if copysize > 8192
-                copysize = 8192
-            sys.memcopy($a000, mem_addr, copysize)
-            mem_addr += 8192
-            remaining -= copysize
-            if remaining==0
-                break
-        }
-        ; TODO END OF TEMPORARY MEM COPY
-
-
         txt.print("\nenter filename to save as (without .prg) > ")
         if txt.input_chars(main.start.filename) {
             txt.print("\nsaving...")
             diskio.delete(drivenumber, main.start.filename)
-            if not diskio.save(drivenumber, main.start.filename, start_address, end_address-start_address) {
-                txt.print(diskio.status(drivenumber))
+
+            if diskio.f_open_w(drivenumber, main.start.filename) {
+                ubyte[2] prgheader
+                prgheader[0] = lsb(start_address)
+                prgheader[1] = msb(start_address)
+                if not diskio.f_write(&prgheader, len(prgheader))
+                    goto io_error
+
+                uword remaining = end_address-start_address
+                ubyte bnk
+                for bnk in output.start_output_bank to output.next_output_bank-1 {
+                    cx16.rambank(bnk)
+                    uword savesize = remaining
+                    if savesize > 8192
+                        savesize = 8192
+                    if not diskio.f_write($a000, savesize)
+                        goto io_error
+                    remaining -= savesize
+                    if remaining==0
+                        break
+                    ; note: we cannot print characters to the screen here (without switching i/o channels)
+                }
+
+                diskio.f_close_w()
+                return
             }
+
+io_error:
+            txt.print(diskio.status(drivenumber))
+
+;            if not diskio.save(drivenumber, main.start.filename, start_address, end_address-start_address) {
+;                txt.print(diskio.status(drivenumber))
+;            }
         }
     }
 }

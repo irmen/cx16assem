@@ -25,12 +25,13 @@ After successfully assembling a source file, a summary will be printed.
 You can then enter the filename to save the program as on disk (will overwrite existing file with the same name!).
 It's always saved in PRG format, so you can load the program again with ``LOAD "NAME",8,1``
 
-At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb for now.
+At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb.
 
 ## Features
 
-- read source files (up to 62 Kb) straight from disk  (sdcard in the emulator)
-- write output as PRG file to disk (sdcard in the emulator)
+- read source files (up to 62 Kb) directly from disk  (sdcard in the emulator)
+- write resulting output directly as PRG file to disk (sdcard in the emulator)
+- can assemble to any system memory location  
 - set program counter with "* = $9000"
 - numbers in decimal 12345, hex $abcd, binary %1010011
 - symbolic labels
@@ -46,10 +47,7 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 
 - can we get it to work on a host mounted filesystem in the emulator?
   
-- write output machine code to upper banked RAM instead of main memory, so we can assemble larger programs,
-  and it doesn't potentially overwrite the assembler itself or the symbol table in system ram.
-  (this also means we can't simply use SAVE routine anymore)
-  
+ 
 
 ### Maybe some day:
   
