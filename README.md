@@ -38,6 +38,7 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 - can use '<value' and '>value' to get the lsb and msb of a value respectively
 - define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"`` 
 - can switch to (the rom-based) x16edit to avoid having to swap-load programs all the time
+- disk device 8,9,10,11 selectable
 
 
 ## Todo

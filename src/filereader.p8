@@ -15,9 +15,9 @@
 ; which would allow for much bigger files to be processed.
 
 filereader {
-    sub read_file(uword filename) -> ubyte {
+    sub read_file(ubyte drivenumber, uword filename) -> ubyte {
         ubyte success = false
-        if diskio.f_open(8, filename) {
+        if diskio.f_open(drivenumber, filename) {
             ubyte[255] buffer           ; less than 256
             uword vram_addr = $0000
             str anim = "││╱╱──╲╲"

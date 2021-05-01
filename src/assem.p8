@@ -10,6 +10,8 @@
 
 main {
 
+    ubyte drivenumber = 8
+
     sub start() {
         str filename = "?" * 20
         print_intro()
@@ -35,6 +37,14 @@ main {
                     '*', ':' -> {
                         ; avoid loading the first file on the disk
                     }
+                    '8' -> set_drivenumber(8)
+                    '9' -> set_drivenumber(9)
+                    '1' -> {
+                        when filename[1] {
+                            '0' -> set_drivenumber(10)
+                            '1' -> set_drivenumber(11)
+                        }
+                    }
                     'q', 'x' -> return
                     else -> {
                         symbols.init()
@@ -46,12 +56,20 @@ main {
         }
     }
 
+    sub set_drivenumber(ubyte nr) {
+        drivenumber = nr
+        txt.print("selected disk drive ")
+        txt.print_ub(drivenumber)
+        txt.nl()
+    }
+
     sub print_intro() {
         txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
         txt.print("commands: just enter the filename to assemble, or:\n")
         txt.print(" $ - list the *.asm files on disk,\n")
         txt.print(" !filename - display the file contents,\n")
         txt.print(" #filename - start x16edit in rom bank 7 on the file,\n")
+        txt.print(" 8/9/10/11 - select disk drive device number (default=8)\n")
         txt.print(" q or x - quit to basic.\n")
     }
 
@@ -82,7 +100,10 @@ main {
     }
 
     sub list_asm_files() {
-        if diskio.lf_start_list(8, "*.asm") {
+        if diskio.lf_start_list(drivenumber, "*.asm") {
+            txt.print("*.asm files on drive ")
+            txt.print_ub(drivenumber)
+            txt.print(":\n\n")
             while diskio.lf_next_entry() {
                 txt.spc()
                 txt.print_uw(diskio.list_blocks)
@@ -96,7 +117,7 @@ main {
             return
         }
         txt.nl()
-        txt.print(diskio.status(8))
+        txt.print(diskio.status(drivenumber))
     }
 
     sub display_file(uword filename) {
@@ -105,7 +126,7 @@ main {
         txt.nl()
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
         ubyte success = false
-        if diskio.f_open(8, filename) {
+        if diskio.f_open(drivenumber, filename) {
             uword line = 0
             repeat {
                 void diskio.f_readline(parser.input_line)
@@ -126,7 +147,7 @@ main {
             }
             diskio.f_close()
         } else {
-            txt.print(diskio.status(8))
+            txt.print(diskio.status(drivenumber))
         }
         cx16.rombank(4)     ; switch back to basic rom
     }
@@ -169,9 +190,9 @@ main {
         ; returns success status, and last processed line number in cx16.r15
 
         if parser.phase==1 {
-            if not filereader.read_file(filename) {
+            if not filereader.read_file(drivenumber, filename) {
                 txt.nl()
-                txt.print(diskio.status(8))
+                txt.print(diskio.status(drivenumber))
                 return false
             }
             time_load = c64.RDTIM16()
@@ -233,9 +254,9 @@ main {
         txt.print("\nenter filename to save as (without .prg) > ")
         if txt.input_chars(main.start.filename) {
             txt.print("\nsaving...")
-            diskio.delete(8, main.start.filename)
-            if not diskio.save(8, main.start.filename, start_address, end_address-start_address) {
-                txt.print(diskio.status(8))
+            diskio.delete(drivenumber, main.start.filename)
+            if not diskio.save(drivenumber, main.start.filename, start_address, end_address-start_address) {
+                txt.print(diskio.status(drivenumber))
             }
         }
     }
