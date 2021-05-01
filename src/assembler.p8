@@ -239,7 +239,6 @@ main {
         txt.print_uw(end_address-start_address)
         txt.print(" bytes)\n source lines: ")
         txt.print_uw(lines)
-
         txt.print("\n    load time: ")
         txt.print_uw(time_load)
         txt.print(" jf.\n phase 1 time: ")
@@ -252,6 +251,25 @@ main {
     }
 
     sub save_program(uword start_address, uword end_address) {
+
+        ; TODO TEMPORARY:  copy banked output back to actual system ram to be able to use SAVE routine
+        uword remaining = end_address-start_address
+        uword mem_addr = start_address
+        ubyte bnk
+        for bnk in output.start_output_bank to output.next_output_bank-1 {
+            cx16.rambank(bnk)
+            uword copysize = remaining
+            if copysize > 8192
+                copysize = 8192
+            sys.memcopy($a000, mem_addr, copysize)
+            mem_addr += 8192
+            remaining -= copysize
+            if remaining==0
+                break
+        }
+        ; TODO END OF TEMPORARY MEM COPY
+
+
         txt.print("\nenter filename to save as (without .prg) > ")
         if txt.input_chars(main.start.filename) {
             txt.print("\nsaving...")
