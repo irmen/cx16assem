@@ -35,7 +35,7 @@ main {
                     '*', ':' -> {
                         ; avoid loading the first file on the disk
                     }
-                    'q' -> return
+                    'q', 'x' -> return
                     else -> {
                         symbols.init()
                         file_input(filename)
@@ -52,7 +52,7 @@ main {
         txt.print(" $ - list the *.asm files on disk,\n")
         txt.print(" !filename - display the file contents,\n")
         txt.print(" #filename - start x16edit in rom bank 7 on the file,\n")
-        txt.print(" q - quit to basic.\n")
+        txt.print(" q or x - quit to basic.\n")
     }
 
     sub edit_file(uword filename) {
@@ -158,8 +158,8 @@ main {
         symbols.dump(15)
 
         if success {
-            print_summary(cx16.r15, parser.pc_min, parser.pc_max)
-            save_program(parser.pc_min, parser.pc_max)
+            print_summary(cx16.r15, output.pc_min, output.pc_max)
+            save_program(output.pc_min, output.pc_max)
         }
 
         cx16.rombank(4)     ; switch back to basic rom
@@ -199,7 +199,7 @@ main {
                     txt.print(parser.word_addrs[2])
                 }
                 txt.print("\n pc: ")
-                txt.print_uwhex(parser.program_counter, true)
+                txt.print_uwhex(output.program_counter, true)
                 txt.nl()
                 return false
             }
@@ -248,9 +248,6 @@ parser {
 
     str input_line = "?" * max_line_length
     uword[3] word_addrs
-    uword program_counter = $ffff
-    uword pc_min = $ffff
-    uword pc_max = $0000
     ubyte phase             ; 1 = scan symbols, 2 = generate machine code
 
     sub start_phase(ubyte ph) {
@@ -277,8 +274,7 @@ parser {
     }
 
     sub done() {
-        if program_counter>pc_max
-            pc_max = program_counter
+        output.done()
     }
 
     sub do_assign() -> ubyte {
@@ -293,7 +289,7 @@ parser {
 
         ubyte valid_operand=false
         if @(word_addrs[2])=='*' {
-            cx16.r15 = program_counter
+            cx16.r15 = output.program_counter
             valid_operand = true
         } else {
             ubyte nlen = conv.any2uword(word_addrs[2])
@@ -302,17 +298,7 @@ parser {
 
         if valid_operand {
             if str_is1(word_addrs[0], '*') {
-                program_counter = cx16.r15
-
-                ; TODO get rid of this warning once we no longer assemble to system memory directly
-                if program_counter < $9000
-                    txt.print("\n\n\x12warning: pc is <$9000 which is system memory used by the assembler!\nrisk of data corruption and weird errors!\x92\nthis problem will probably be fixed in a future version!\n\n")
-
-
-                if program_counter<pc_min
-                    pc_min = program_counter
-                if program_counter>pc_max
-                    pc_max = program_counter
+                output.set_pc(cx16.r15)
             } else if phase==1 {
                 ubyte dt = symbols_dt.dt_ubyte
                 if msb(cx16.r15)
@@ -365,7 +351,7 @@ parser {
                 return false
             }
             if phase==1 {
-                ubyte symbol_idx = symbols.setvalue(label_ptr, program_counter, symbols_dt.dt_uword)
+                ubyte symbol_idx = symbols.setvalue(label_ptr, output.program_counter, symbols_dt.dt_uword)
                 if not symbol_idx
                     return false
             }
@@ -431,10 +417,10 @@ parser {
                             comma++
                             cx16.r13 = cx16.r15
                             if parse_operand(comma) {
-                                program_counter++
+                                output.program_counter++
                                 if not calc_relative_branch_into_r14()
                                     return false
-                                program_counter--
+                                output.program_counter--
                                 cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
                             } else {
                                 txt.print("?invalid operand for zpr\n")
@@ -450,16 +436,15 @@ parser {
                 ubyte num_operand_bytes = operand_size[addr_mode]
                 when phase {
                     1 -> {
-                        program_counter++
-                        program_counter += num_operand_bytes
+                        output.inc_pc(num_operand_bytes)
                     }
                     2 -> {
-                        emit(opcode)
+                        output.emit(opcode)
                         if num_operand_bytes==1 {
-                            emit(lsb(cx16.r15))
+                            output.emit(lsb(cx16.r15))
                         } else if num_operand_bytes == 2 {
-                            emit(lsb(cx16.r15))
-                            emit(msb(cx16.r15))
+                            output.emit(lsb(cx16.r15))
+                            output.emit(msb(cx16.r15))
                         }
                     }
                 }
@@ -473,7 +458,7 @@ parser {
     }
 
     sub calc_relative_branch_into_r14() -> ubyte {
-        cx16.r14 = cx16.r15 - program_counter - 2
+        cx16.r14 = cx16.r15 - output.program_counter - 2
         if msb(cx16.r14)  {
             if cx16.r14 < $ff80 {
                 txt.print("?branch out of range\n")
@@ -595,7 +580,7 @@ parser {
                     ; the symbol is undefined in phase 1.
                     ; enter it in the symbol table preliminary, and assume it is a word datatype.
                     ; (if that is not correct, the symbol should be defined before use to correct this...)
-                    cx16.r15 = program_counter  ; to avoid branch Rel errors
+                    cx16.r15 = output.program_counter  ; to avoid branch Rel errors
                     ; we know the symbol isn't defined yet so just set a new one (without check)
                     ubyte symbol_idx = symbols.setvalue2_new(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
                     if not symbol_idx
@@ -732,9 +717,9 @@ _yes        lda  #1
                 return false
             }
             if phase==2
-                emit(lsb(cx16.r15))
+                output.emit(lsb(cx16.r15))
             else
-                program_counter++
+                output.inc_pc(0)
             operand += length
             operand = str_trimleft(operand)
             while @(operand)==',' {
@@ -748,9 +733,9 @@ _yes        lda  #1
                     return false
                 }
                 if phase==2
-                    emit(lsb(cx16.r15))
+                    output.emit(lsb(cx16.r15))
                 else
-                    program_counter++
+                    output.inc_pc(0)
                 operand += length
             }
             return true
@@ -764,11 +749,11 @@ _yes        lda  #1
         ubyte length = conv.any2uword(operand)
         if length {
             if phase==2 {
-                emit(lsb(cx16.r15))
-                emit(msb(cx16.r15))
+                output.emit(lsb(cx16.r15))
+                output.emit(msb(cx16.r15))
             }
             else
-                program_counter++
+                output.inc_pc(0)
             operand += length
             operand = str_trimleft(operand)
             while @(operand)==',' {
@@ -778,11 +763,11 @@ _yes        lda  #1
                 if not length
                     break
                 if phase==2 {
-                    emit(lsb(cx16.r15))
-                    emit(msb(cx16.r15))
+                    output.emit(lsb(cx16.r15))
+                    output.emit(msb(cx16.r15))
                 }
                 else
-                    program_counter++
+                    output.inc_pc(0)
                 operand += length
             }
             return true
@@ -802,9 +787,9 @@ _yes        lda  #1
                     '\"', 0 -> return true
                     else -> {
                         if phase==2
-                            emit(char)
+                            output.emit(char)
                         else
-                            program_counter++
+                            output.inc_pc(0)
                     }
                 }
                 char_idx++
@@ -872,11 +857,6 @@ _is_2_entry
             }
         }
         return 0
-    }
-
-    sub emit(ubyte value) {
-        @(program_counter) = value
-        program_counter++
     }
 
     sub split_input() {
@@ -976,6 +956,41 @@ _is_2_entry
     }
 }
 
+output {
+    ; code ran in phase 2 to actually output assembled bytes into memory.
+
+    uword program_counter = $ffff
+    uword pc_min = $ffff
+    uword pc_max = $0000
+
+    sub set_pc(uword addr) {
+        program_counter = addr
+
+        ; TODO get rid of this warning once we no longer assemble to system memory directly
+        if program_counter < $9000
+            txt.print("\n\n\x12warning: pc is <$9000 which is system memory used by the assembler!\nrisk of data corruption and weird errors!\x92\nthis problem will probably be fixed in a future version!\n\n")
+
+        if program_counter<pc_min
+            pc_min = program_counter
+        if program_counter>pc_max
+            pc_max = program_counter
+    }
+
+    sub inc_pc(ubyte num_operand_bytes) {
+        program_counter++
+        program_counter += num_operand_bytes
+    }
+
+    sub emit(ubyte value) {
+        @(program_counter) = value
+        program_counter++
+    }
+
+    sub done() {
+        if program_counter>pc_max
+            pc_max = program_counter
+    }
+}
 
 instructions {
     const ubyte am_Invalid = 0
