@@ -382,8 +382,6 @@ parser {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
             ubyte addr_mode = parse_operand(operand_ptr)
 
-            ; TODO don't push it to find the correct opcode and branch Rel opcode if phase==1.
-
             if addr_mode {
                 ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
                 if_cc {
@@ -394,10 +392,12 @@ parser {
                         instructions.am_Abs -> {
                             if @(instr_ptr)=='b' {
                                 addr_mode = instructions.am_Rel
-                                if not calc_relative_branch_into_r14()
-                                    return false
-                                cx16.r15 = cx16.r14
                                 retry = true
+                                if phase==2 {
+                                    if not calc_relative_branch_into_r14()
+                                        return false
+                                    cx16.r15 = cx16.r14
+                                }
                             }
                         }
                         instructions.am_Imp -> {
@@ -423,25 +423,27 @@ parser {
                     }
                 }
 
-                if addr_mode==instructions.am_Zpr {
-                    ; instructions like BBR4 $zp,$aaaa   (dual-operand)
-                    uword comma = string.find(operand_ptr,',')
-                    if comma {
-                        comma++
-                        cx16.r13 = cx16.r15
-                        if parse_operand(comma) {
-                            program_counter++
-                            if not calc_relative_branch_into_r14()
+                if phase==2 {
+                    if addr_mode==instructions.am_Zpr {
+                        ; instructions like BBR4 $zp,$aaaa   (dual-operand)
+                        uword comma = string.find(operand_ptr,',')
+                        if comma {
+                            comma++
+                            cx16.r13 = cx16.r15
+                            if parse_operand(comma) {
+                                program_counter++
+                                if not calc_relative_branch_into_r14()
+                                    return false
+                                program_counter--
+                                cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
+                            } else {
+                                txt.print("?invalid operand for zpr\n")
                                 return false
-                            program_counter--
-                            cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
+                            }
                         } else {
                             txt.print("?invalid operand for zpr\n")
                             return false
                         }
-                    } else {
-                        txt.print("?invalid operand for zpr\n")
-                        return false
                     }
                 }
 
