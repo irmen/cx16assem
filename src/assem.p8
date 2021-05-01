@@ -13,6 +13,7 @@ main {
     sub start() {
         str filename = "?" * 20
         print_intro()
+        symbols.init()
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
@@ -594,7 +595,7 @@ parser {
                     ; (if that is not correct, the symbol should be defined before use to correct this...)
                     cx16.r15 = program_counter  ; to avoid branch Rel errors
                     ; we know the symbol isn't defined yet so just set a new one (without check)
-                    ubyte symbol_idx = symbols.setvalue2_newsymbol(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
+                    ubyte symbol_idx = symbols.setvalue2_new(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
                     if not symbol_idx
                         return instructions.am_Invalid
                     return operand_determine_abs_or_zp_addrmode(operand_ptr)

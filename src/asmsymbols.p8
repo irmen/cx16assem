@@ -37,12 +37,35 @@ symbols_dt {
 ;   linear scan symbol lookup (slow)
 
 symbols {
+    const ubyte max_name_len = 31       ; excluding the terminating 0.
+    const ubyte num_buckets = 128
+    const ubyte max_entries_per_bucket = 12     ; can be adjusted if bucket full errors occur too often
+    const uword entrybuffer_size = $5000        ; can be as large as free ram allows (which runs up to $9f00)
+    ubyte[num_buckets] bucket_entry_counts
+    uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
+    uword num_entries
+    uword entrybuffer = memory("entrybuffer", entrybuffer_size)
+        ; the entry buffer is a large block of memory in which the entries are stored.
+        ; an entry consists of:
+        ;  *     1 BYTE: datatype
+        ;  *    2 BYTES: value
+        ;  * 2-32 BYTES: symbolname (variable length, terminated with 0)
+    uword entrybufferptr
+
+
     ; SUBROUTINE: init
     ; PURPOSE: call to clear the symbol table for initial or subsequent use.
     ; ARGS: -
     ; RETURNS: -
     sub init() {
-        hashtable.init()
+        entrybufferptr = entrybuffer
+        sys.memset(&bucket_entry_counts, num_buckets, 0)
+        num_entries = 0
+
+        if sys.progend() >= $9f00-max_name_len*2 {
+            txt.print("\n\nerror: symbol table size exceeds free system ram\n\n")
+            sys.exit(1)
+        }
     }
 
     ; SUBROUTINE: numsymbols
@@ -50,7 +73,7 @@ symbols {
     ; ARGS: -
     ; RETURNS: uword, the number of symbols.
     inline sub numsymbols() -> uword {
-        return hashtable.num_entries
+        return num_entries
     }
 
     ; SUBROUTINE: setvalue
@@ -60,13 +83,13 @@ symbols {
     ;       datatype = one of the datatype constants for this value.
     ; RETURNS: success boolean.
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
-        ubyte hash = hashtable.calc_hash(symbol)
+        ubyte hash = ht_calc_hash(symbol)
         if_cs {
             txt.print("\n?hash error name too long\n")
             return false
         }
 
-        uword existing_entry_ptr = hashtable.find_entry_in_bucket(hash, symbol)
+        uword existing_entry_ptr = ht_find_entry_in_bucket(hash, symbol)
         if existing_entry_ptr {
             when @(existing_entry_ptr) {
                 symbols_dt.dt_uword_placeholder, symbols_dt.dt_ubyte_placeholder -> {
@@ -82,23 +105,22 @@ symbols {
             }
         }
 
-        ; add new entry
-        return hashtable.add_entry(hash, symbol, value, datatype)
+        return ht_add_entry(hash, symbol, value, datatype)
     }
 
-    ; SUBROUTINE: setvalue_newsymbol
+    ; SUBROUTINE: setvalue_new
     ; PURPOSE: adds a new symbol + value to the table.  ASSUMES THE SYMBOL IS NOT YET IN THE TABLE!
     ; ARGS: symbol = address of the symbol (0-terminated string),
     ;       value = byte or word value for this symbol,
     ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
-    sub setvalue_newsymbol(uword symbol, uword value, ubyte datatype) -> ubyte {
-        ubyte hash = hashtable.calc_hash(symbol)
+    sub setvalue_new(uword symbol, uword value, ubyte datatype) -> ubyte {
+        ubyte hash = ht_calc_hash(symbol)
         if_cs {
             txt.print("\n?hash error name too long\n")
             return false
         }
-        return hashtable.add_entry(hash, symbol, value, datatype)
+        return ht_add_entry(hash, symbol, value, datatype)
     }
 
     ; SUBROUTINE: setvalue2
@@ -116,17 +138,17 @@ symbols {
         return result
     }
 
-    ; SUBROUTINE: setvalue2_newsymbol
+    ; SUBROUTINE: setvalue2_new
     ; PURPOSE: adds a new symbol + value to the table. ASSUMES THE SYMBOL IS NOT YET IN THE TABLE!
     ; ARGS: symbol = address of the symbol,
     ;       length = length of the symbol,
     ;       value = byte or word value for this symbol,
     ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
-    sub setvalue2_newsymbol(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
+    sub setvalue2_new(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
         ubyte tc = @(symbol+length)
         @(symbol+length) = 0
-        ubyte result = setvalue_newsymbol(symbol, value, datatype)
+        ubyte result = setvalue_new(symbol, value, datatype)
         @(symbol+length) = tc
         return result
     }
@@ -137,13 +159,13 @@ symbols {
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
     sub getvalue(uword symbol) -> ubyte {
-        ubyte hash = hashtable.calc_hash(symbol)
+        ubyte hash = ht_calc_hash(symbol)
         if_cs {
             txt.print("\n?hash error name too long\n")
             return false
         }
 
-        uword entry_ptr = hashtable.find_entry_in_bucket(hash, symbol)
+        uword entry_ptr = ht_find_entry_in_bucket(hash, symbol)
         if entry_ptr {
             cx16.r1 = @(entry_ptr)
             cx16.r0 = peekw(entry_ptr+1)
@@ -171,24 +193,24 @@ symbols {
     ; ARGS / RETURNS: -
     sub dump(uword num_lines) {
         txt.print("\nsymboltable contains ")
-        txt.print_uw(hashtable.num_entries)
+        txt.print_uw(num_entries)
         txt.print(" entries:\n")
-        if hashtable.num_entries {
-            if num_lines >= hashtable.num_entries
-                num_lines = hashtable.num_entries
-            if num_lines != hashtable.num_entries {
+        if num_entries {
+            if num_lines >= num_entries
+                num_lines = num_entries
+            if num_lines != num_entries {
                 txt.print("(listing limited to ")
                 txt.print_uw(num_lines)
                 txt.print(")\n")
             }
 
             ubyte bk
-            for bk in 0 to hashtable.num_buckets-1 {
-                ubyte bucketcount = hashtable.bucket_entry_counts[bk]
+            for bk in 0 to num_buckets-1 {
+                ubyte bucketcount = bucket_entry_counts[bk]
                 if bucketcount {
                     ubyte ix
                     for ix in 0 to bucketcount-1 {
-                        uword entryptr = peekw(hashtable.bucket_entry_pointers + (bk as uword)*hashtable.max_entries_per_bucket*2 + ix*2)
+                        uword entryptr = peekw(bucket_entry_pointers + (bk as uword)*max_entries_per_bucket*2 + ix*2)
 
                         ; to dump the bucket number and entry addr as well for debug:
 ;                        txt.print("  #")
@@ -214,40 +236,8 @@ symbols {
             }
         }
     }
-}
 
-
-hashtable {
-
-    ; TODO when this all works nicely, reintegrate into symboltable block to get rid of extra subroutine calls?
-
-    const ubyte max_name_len = 31       ; excluding the terminating 0
-    const ubyte num_buckets = 128
-    const ubyte max_entries_per_bucket = 12     ; TODO adjust if too low?
-    const uword entrybuffer_size = $5000        ; TODO adjust later, to not overwrite IO beginning at $9f00!
-    ubyte[num_buckets] bucket_entry_counts
-    uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
-    uword num_entries
-    uword entrybuffer = memory("entrybuffer", entrybuffer_size)
-        ; the entry buffer is a large block of memory in which the entries are stored.
-        ; an entry consists of:
-        ;  *     1 BYTE: datatype
-        ;  *    2 BYTES: value
-        ;  * 2-32 BYTES: symbolname (terminated with 0)
-    uword entrybufferptr
-
-    sub init() {
-        entrybufferptr = entrybuffer
-        sys.memset(&bucket_entry_counts, num_buckets, 0)
-        num_entries = 0
-
-;      To see what the maximum memory address is used by the assembler:
-;        txt.print("memtop=")
-;        txt.print_uwhex(sys.progend(), true)
-;        txt.nl()
-    }
-
-    sub add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> ubyte {
+    sub ht_add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> ubyte {
         ; NOTE: this routine assumes the symbol DOES NOT EXIST in the table yet!
         ubyte bucketcount = bucket_entry_counts[hash]
         if bucketcount >= max_entries_per_bucket {
@@ -272,13 +262,13 @@ hashtable {
         return true
     }
 
-    sub find_entry_in_bucket(ubyte hash, uword symbol) -> uword {
+    sub ht_find_entry_in_bucket(ubyte hash, uword symbol) -> uword {
         ubyte bucketcount = bucket_entry_counts[hash]
         if bucketcount==0
             return $0000
 
         ; search the symbol in the bucket list
-        uword bucketptrs = hashtable.bucket_entry_pointers + (hash as uword)*hashtable.max_entries_per_bucket*2
+        uword bucketptrs = bucket_entry_pointers + (hash as uword)*max_entries_per_bucket*2
         ubyte ix
         for ix in 0 to bucketcount-1 {
             uword entryptr = peekw(bucketptrs + ix*2)
@@ -290,7 +280,7 @@ hashtable {
 
     ; calculate a reasonable byte hash code 0..127 (by adding all the characters and eoring with the length)
     ; returns ok status in Carry (carry clear=all OK carry set = symbol name too long)
-    asmsub calc_hash(uword symbol @R7) -> ubyte @A, ubyte @Pc {
+    asmsub ht_calc_hash(uword symbol @R7) -> ubyte @A, ubyte @Pc {
         %asm {{
             stz  P8ZP_SCRATCH_B1        ; the hash
             ldy  #0
