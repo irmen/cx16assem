@@ -35,6 +35,7 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 - set program counter with "* = $9000"
 - numbers in decimal 12345, hex $abcd, binary %1010011
 - symbolic labels
+- can use '<value' and '>value' to get the lsb and msb of a value respectively
 - define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"`` 
 - can switch to (the rom-based) x16edit to avoid having to swap-load programs all the time
 
@@ -55,12 +56,11 @@ At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb fo
 ### Maybe some day:
   
 - include / incbin  to read in separate files
-
-- relative labels (+ / -)
+  these files have to be cached in banked ram to avoid having to reload them in phase 2
 
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 
-- local scoped labels
+- local scoped labels and perhaps relative labels (+/-)
 
 - macros
 
