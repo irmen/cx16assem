@@ -12,7 +12,7 @@ assembler.prg: src/assembler.p8 src/filereader.p8 src/asmsymbols.p8 src/asmoutpu
 	p8compile $< -target cx16
 
 src/opcodes.asm:  gen_opcodes.py
-	python $< --parser > $@
+	python $< --parser-tree > $@
 
 experiment/perfecthashmnem.c:  gen_opcodes.py
 	python $< --mnemlist | gperf --no-strlen --null-strings -7 -C -D -E -m 100 > $@
