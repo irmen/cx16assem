@@ -1124,5 +1124,5 @@ _valid      sec
     ; Currently this is a prefix-tree matching routine that expects
     ; the three letters of the mnemonic to be in registers A,X,Y
     ; which covers most of the instructions (only a few have 4 letters)
-    %asminclude "opcodes.asm", ""
+    %asminclude "opcodes.asm"
 }
