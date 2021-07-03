@@ -84,6 +84,8 @@ error:
 
     asmsub next_line(uword buffer @AY) -> ubyte @A {
         ; Optimized routine to copy the next line of text from vram to the system ram buffer.
+        ; Note that it is required to actually copy the line to a work buffer because the parser
+        ; modifies some characters in the buffer while parsing, and this has to be repeatable.
         ; Returns true when a line is available, false when EOF was reached.
         %asm {{
             sta  P8ZP_SCRATCH_W1
