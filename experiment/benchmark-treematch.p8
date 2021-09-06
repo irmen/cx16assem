@@ -1,4 +1,3 @@
-%target cx16
 %import test_stack
 %import textio
 %zeropage basicsafe
