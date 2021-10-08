@@ -72,7 +72,7 @@ symbols {
     ; PURPOSE: returns the number of symbols in the symboltable
     ; ARGS: -
     ; RETURNS: uword, the number of symbols.
-    inline sub numsymbols() -> uword {
+    sub numsymbols() -> uword {
         return num_entries
     }
 

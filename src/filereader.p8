@@ -77,7 +77,7 @@ error:
 
     uword line_ptr
 
-    inline sub start_get_lines() {
+    sub start_get_lines() {
         line_ptr = $0000
     }
 
