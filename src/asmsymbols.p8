@@ -199,9 +199,9 @@ symbols {
             if num_lines >= num_entries
                 num_lines = num_entries
             if num_lines != num_entries {
-                txt.print("(listing limited to ")
+                txt.print("(first ")
                 txt.print_uw(num_lines)
-                txt.print(")\n")
+                txt.print(" shown)\n")
             }
 
             ubyte bk

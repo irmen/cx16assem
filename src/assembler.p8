@@ -23,54 +23,75 @@ main {
                 when filename[0] {
                     '$' -> list_asm_files()
                     '!' -> {
-                        if filename[1]
-                            display_file(&filename+1)
+                        if filename[1] {
+                            if filename[1]==' ' and filename[2]
+                                display_file(&filename+2)
+                            else
+                                display_file(&filename+1)
+                        }
                     }
                     '#' -> {
-                        if filename[1]
-                            edit_file(&filename+1)
+                        if filename[1] {
+                            if filename[1]==' ' and filename[2]
+                                edit_file(&filename+2)
+                            else
+                                edit_file(&filename+1)
+                        }
                         else
                             edit_file(0)
                         ;test_stack.test()
                         print_intro()
                     }
-                    '*', ':' -> {
-                        ; avoid loading the first file on the disk
-                    }
-                    '8' -> set_drivenumber(8)
-                    '9' -> set_drivenumber(9)
-                    '1' -> {
-                        when filename[1] {
-                            '0' -> set_drivenumber(10)
-                            '1' -> set_drivenumber(11)
+                    'd' -> {
+                        if filename[1] {
+                            ubyte drivenum
+                            if filename[1]==' ' and filename[2]
+                                drivenum = filename[2]
+                            else
+                                drivenum = filename[1]
+                            set_drivenumber(drivenum-'0')
                         }
                     }
-                    'q', 'x' -> return
-                    else -> {
+                    'a' -> {
                         symbols.init()
-                        file_input(filename)
-                        break
+                        if filename[1] {
+                            if filename[1]==' ' and filename[2]
+                                file_input(&filename+2)
+                            else
+                                file_input(&filename+1)
+                            break
+                        }
                     }
+                    '?', 'h' -> print_intro()
+                    'q', 'x' -> return
+                    else -> txt.print("?invalid command\n")
                 }
             }
         }
     }
 
     sub set_drivenumber(ubyte nr) {
-        drivenumber = nr
-        txt.print("selected disk drive ")
-        txt.print_ub(drivenumber)
-        txt.nl()
+        if nr==8 or nr==9 {
+            drivenumber = nr
+            txt.print("selected disk drive ")
+            txt.print_ub(drivenumber)
+            txt.nl()
+        }
+        else {
+            txt.print("?invalid drive number\n")
+        }
     }
 
     sub print_intro() {
         txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
-        txt.print("commands: just enter the filename to assemble, or:\n")
-        txt.print(" $ - list the *.asm files on disk,\n")
-        txt.print(" !filename - display the file contents,\n")
-        txt.print(" #filename - start x16edit in rom bank 7 on the file,\n")
-        txt.print(" 8/9/10/11 - select disk drive device number (default=8)\n")
-        txt.print(" q or x - quit to basic.\n")
+        txt.print("available commands:\n\n")
+        txt.print("  $             -  lists *.asm files on disk\n")
+        txt.print("  a <filename>  -  assemble file\n")
+        txt.print("  ! <filename>  -  display contents of file\n")
+        txt.print("  # <filename>  -  start x16edit in rom bank 7 on file\n")
+        txt.print("  d <number>    -  select disk device number (8 or 9, default=8)\n")
+        txt.print("  ? or h        -  print this help.\n")
+        txt.print("  q or x        -  quit to basic.\n")
     }
 
     sub edit_file(uword filename) {
@@ -158,9 +179,9 @@ main {
 
     sub file_input(uword filename) {
 
-        txt.print("assembling ")
+        txt.print("\x12assembling ")
         txt.print(filename)
-        txt.nl()
+        txt.print("\x92\n")
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
         c64.SETTIM(0,0,0)
         parser.start_phase(1)
@@ -247,7 +268,14 @@ main {
         txt.print_uw(time_phase2-time_phase1)
         txt.print(" jf.\n   total time: ")
         txt.print_uw(time_phase2)
-        txt.print(" jf.\n")
+        txt.print(" jf = ")
+        time_phase2 /= 6
+        uword seconds = time_phase2 / 10
+        time_phase2 -= seconds*10
+        txt.print_uw(seconds)
+        txt.chrout('.')
+        txt.print_uw(time_phase2)
+        txt.print(" seconds.\n")
     }
 
     sub save_program(uword start_address, uword end_address) {
