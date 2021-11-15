@@ -11,9 +11,9 @@ emu:  assembler.prg
 assembler.prg: src/assembler.p8 src/filereader.p8 src/asmsymbols.p8 src/asmoutput.p8 src/opcodes.asm
 	p8compile $< -target cx16
 
-src/opcodes.asm:  gen_opcodes.py
+src/opcodes.asm:  src/gen_opcodes.py
 	python $< --parser-tree > $@
 
-experiment/perfecthashmnem.c:  gen_opcodes.py
+experiment/perfecthashmnem.c:  src/gen_opcodes.py
 	python $< --mnemlist | gperf --no-strlen --null-strings -7 -C -D -E -m 100 > $@
 
