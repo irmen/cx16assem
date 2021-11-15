@@ -50,6 +50,10 @@ main {
                             else
                                 drivenum = filename[1]
                             set_drivenumber(drivenum-'0')
+                        } else {
+                            txt.print("current disk drive is ")
+                            txt.print_ub(drivenumber)
+                            txt.nl()
                         }
                     }
                     'a' -> {
@@ -85,13 +89,13 @@ main {
     sub print_intro() {
         txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
         txt.print("available commands:\n\n")
-        txt.print("  $             -  lists *.asm files on disk\n")
-        txt.print("  a <filename>  -  assemble file\n")
-        txt.print("  ! <filename>  -  display contents of file\n")
-        txt.print("  # <filename>  -  start x16edit in rom bank 7 on file\n")
-        txt.print("  d <number>    -  select disk device number (8 or 9, default=8)\n")
-        txt.print("  ? or h        -  print this help.\n")
-        txt.print("  q or x        -  quit to basic.\n")
+        txt.print("  $            - lists *.asm files on disk\n")
+        txt.print("  a <filename> - assemble file\n")
+        txt.print("  ! <filename> - display contents of file\n")
+        txt.print("  # <filename> - start x16edit in rom bank 7 on file\n")
+        txt.print("  d <number>   - select disk device number (8 or 9, default=8)\n")
+        txt.print("  ? or h       - print this help.\n")
+        txt.print("  q or x       - quit to basic.\n")
     }
 
     sub edit_file(uword filename) {
