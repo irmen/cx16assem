@@ -75,7 +75,7 @@ error:
         return success
     }
 
-    uword line_ptr
+    uword @shared line_ptr
 
     sub start_get_lines() {
         line_ptr = $0000
