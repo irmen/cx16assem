@@ -3,17 +3,18 @@
 %import string
 %import errors
 
-; routines to load a source file into memory (all at once),
+; Routines to load source files into memory,
 ; and to provide an iteration mechanism to retrieve the lines in sequential order
 ; (by copying them to a given line buffer in system memory).
 ;
-; For simplicity (not having to deal with ram-banking), the file is currently
+; For simplicity (not having to deal with ram-banking), the files are currently
 ; read into the free area of VERA's upper vram bank  ($10000 - $1f900, about 62 kb contiguous memory)
 ; This memory is unused in the default text screen mode.
 ;
-; It does mean that the source files are currently limited to 62 kilobyte.
+; You can load a certain limited number of files in the database and the total size must fit in those 62 Kb.
+;
 ; Maybe in the future this could be changed to use regular (banked) system RAM instead,
-; which would allow for much bigger files to be processed.
+; which would allow for more and bigger files to be processed.
 
 filereader {
     sub init() {
