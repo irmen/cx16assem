@@ -3,6 +3,7 @@
 ; (phase 1 just tracks the programcounter)
 
 %import textio
+%import errors
 
 output {
     uword program_counter = $ffff
@@ -21,7 +22,7 @@ output {
             1 -> {
                 ubyte numbanks = cx16.numbanks()
                 if numbanks<10 {
-                    txt.print("\n?too few ram banks (needs 10 or more)\n")
+                    err.print("too few ram banks (needs 10 or more)")
                     sys.exit(1)
                 }
                 start_output_bank = numbanks-8        ; 8 top banks = 64 kilobyte output size

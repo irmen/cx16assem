@@ -1,5 +1,7 @@
 %import textio
 %import diskio
+%import string
+%import errors
 
 ; routines to load a source file into memory (all at once),
 ; and to provide an iteration mechanism to retrieve the lines in sequential order
@@ -14,18 +16,29 @@
 ; which would allow for much bigger files to be processed.
 
 filereader {
+    sub init() {
+        filestore.init()
+    }
+
     sub read_file(ubyte drivenumber, uword filename) -> ubyte {
         ubyte success = false
+        uword vram_addr = filestore.prepare()
+        if vram_addr==$ffff {
+            err.print("out of memory")
+            return false
+        }
         if diskio.f_open(drivenumber, filename) {
             ubyte[255] buffer           ; less than 256
-            uword vram_addr = $0000
             str anim = "││╱╱──╲╲"
             ubyte anim_counter = 0
+            uword start_address = vram_addr
 
             txt.print("loading ")
+            txt.print(filename)
+            txt.spc()
             repeat {
                 if c64.STOP2() {
-                    txt.print("\n?break\n")
+                    err.print("break")
                     goto error
                 }
                 ; read a chunk into ram...
@@ -33,7 +46,7 @@ filereader {
                 if length==0
                     break
                 if msb(vram_addr+length) >= $f9 {
-                    txt.print("\n?file too large >62kb\n")
+                    err.print("out of memory")
                     goto error
                 }
                 txt.chrout(anim[anim_counter])
@@ -61,14 +74,13 @@ _copyloop           lda  (P8ZP_SCRATCH_W1),y
                 }}
                 vram_addr += length
             }
+            uword filesize = vram_addr-start_address
             txt.print("\x9d ")
-            txt.print_uw(vram_addr)
-            txt.print(" bytes. ")
+            txt.print_uw(filesize)
+            txt.print(" bytes.\n")
 
-            ; tag the end of the file as a $00,$ff byte sequence
-            cx16.vpoke(1, vram_addr, 0)
-            cx16.vpoke(1, vram_addr+1, 255)
-            success = true
+            if filestore.add(filename, filesize)
+                success = true
 error:
             diskio.f_close()
         }
@@ -77,8 +89,13 @@ error:
 
     uword @shared line_ptr
 
-    sub start_get_lines() {
-        line_ptr = $0000
+    ; returns true if the file's lines can be accessed via next_line(), false otherwise
+    sub start_get_lines(str filename) -> ubyte {
+        ubyte index = filestore.search(filename)
+        if index==$ff
+            return false
+        line_ptr = filestore.addresses[index]
+        return true
     }
 
     asmsub next_line(uword buffer @AY) -> ubyte @A {
@@ -122,5 +139,88 @@ _eol        lda  #0
 _eof        sta  (P8ZP_SCRATCH_W1),y
             rts
         }}
+    }
+}
+
+
+filestore {
+    const ubyte max_num_files = 16
+    uword names = memory("names", 256)
+    uword names_ptr
+    str[max_num_files] name_ptrs
+    uword[max_num_files] addresses
+    uword[max_num_files] sizes
+    ubyte num_files
+    uword next_load_address
+
+    sub init() {
+        num_files = 0
+        next_load_address = $0000
+        names_ptr = names
+    }
+
+    ; prepares the next file to be stored, returns the address where you may store the file in memory
+    ; returns $ffff if the memory is full.
+    sub prepare() -> uword {
+        if msb(next_load_address) <= $f9
+            if num_files < max_num_files
+                return next_load_address
+            else
+                err.print("too many files")
+        return $ffff
+    }
+
+    ; adds a file to the database, return true on success or false otherwise
+    sub add(str filename, uword size) -> ubyte {
+        if num_files >= max_num_files {
+            err.print("too many files")
+            return false
+        }
+
+        name_ptrs[num_files] = names_ptr
+        names_ptr += string.copy(filename, names_ptr) + 1
+        addresses[num_files] = next_load_address
+        next_load_address += size
+        ; tag the end of the file as a $00,$ff byte sequence
+        cx16.vpoke(1, next_load_address, 0)
+        next_load_address++
+        cx16.vpoke(1, next_load_address, 255)
+        next_load_address++
+        sizes[num_files] = size
+        num_files++
+        return true
+    }
+
+    ; search the given file in the database
+    ; returns the index of this file, or $ff if it wasn't found.
+    ; (you can use the index to get the address and size from addresses[] and sizes[])
+    sub search(str filename) -> ubyte {
+        if num_files==0
+            return $ff
+        ubyte i
+        for i in 0 to num_files-1 {
+            if string.compare(filename, name_ptrs[i])==0
+                return i
+        }
+        return $ff
+    }
+
+    sub dump() {
+        if num_files==0 {
+            txt.print("\nno files.\n")
+            return
+        }
+        txt.print("\nthere are ")
+        txt.print_ub(num_files)
+        txt.print(" files:\n")
+        ubyte i
+        for i in 0 to num_files-1 {
+            txt.print_uwhex(addresses[i], true)
+            txt.print("  ")
+            txt.print_uw(sizes[i])
+            txt.print("  ")
+            txt.print(name_ptrs[i])
+            txt.nl()
+        }
     }
 }

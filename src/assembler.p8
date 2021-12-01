@@ -4,6 +4,7 @@
 %import asmsymbols
 %import asmoutput
 %import filereader
+%import errors
 %import test_stack
 %zeropage basicsafe
 %option no_sysinit
@@ -15,7 +16,6 @@ main {
     sub start() {
         str filename = "?" * 20
         print_intro()
-        symbols.init()
         repeat {
             txt.print("\n> ")
             if txt.input_chars(filename) {
@@ -58,6 +58,7 @@ main {
                     }
                     'a' -> {
                         symbols.init()
+                        filereader.init()
                         if filename[1] {
                             if filename[1]==' ' and filename[2]
                                 file_input(&filename+2)
@@ -202,6 +203,7 @@ main {
         time_phase2 = c64.RDTIM16()
         txt.nl()
         symbols.dump(15)
+        filestore.dump()
 
         if success {
             print_summary(cx16.r15, output.pc_min, output.pc_max)
@@ -226,7 +228,11 @@ main {
 
         cx16.r15 = 0
         txt.print("parsing")
-        filereader.start_get_lines()
+        if not filereader.start_get_lines(filename) {
+            err.print("can't read lines")
+            return false
+        }
+
         uword line = 0
         while filereader.next_line(parser.input_line) {
             line++
@@ -366,7 +372,7 @@ parser {
     sub do_assign() -> ubyte {
         ; target is in word_addrs[0], value is in word_addrs[2]   ('=' is in word_addrs[1])
         if not word_addrs[2] {
-            txt.print("\n?syntax error\n")
+            err.print("syntax error")
             return false
         }
 
@@ -597,7 +603,7 @@ parser {
                             else
                                 cx16.r15 = lsb(cx16.r0)
                         } else {
-                            err_undefined_symbol(operand_ptr)
+                            err.print2("undefined symbol:", operand_ptr)
                             return instructions.am_Invalid
                         }
                     }
@@ -628,7 +634,7 @@ parser {
                         cx16.r15 = cx16.r0
                         return operand_determine_indirect_addrmode(operand_ptr)
                     } else {
-                        err_undefined_symbol(sym_ptr)
+                        err.print2("undefined symbol:", sym_ptr)
                     }
                 }
                 return instructions.am_Invalid
@@ -674,7 +680,7 @@ parser {
                     return operand_determine_abs_or_zp_addrmode(operand_ptr)
                 }
                 if phase==2 {
-                    err_undefined_symbol(sym_ptr)
+                    err.print2("undefined symbol:", sym_ptr)
                     return instructions.am_Invalid
                 }
             }
@@ -727,12 +733,6 @@ parser {
         }
 
         return instructions.am_Invalid
-    }
-
-    sub err_undefined_symbol(uword symbol) {
-        txt.print("\n?undefined symbol: ")
-        txt.print(symbol)
-        txt.nl()
     }
 
 ; this is rewritten in assembly because of inner loop optimizations
@@ -791,7 +791,7 @@ _yes        lda  #1
                 return proces_directive_str(operand)
         }
 
-        txt.print("\n?syntax error\n")
+        err.print("syntax error")
         return false
     }
 
@@ -827,7 +827,7 @@ _yes        lda  #1
             return true
         }
 
-        txt.print("\n?syntax error\n")
+        err.print("syntax error")
         return false
     }
 
@@ -859,7 +859,7 @@ _yes        lda  #1
             return true
         }
 
-        txt.print("\n?syntax error\n")
+        err.print("syntax error")
         return false
     }
 
@@ -882,7 +882,7 @@ _yes        lda  #1
             }
         }
 
-        txt.print("\n?syntax error\n")
+        err.print("syntax error")
         return false
     }
 

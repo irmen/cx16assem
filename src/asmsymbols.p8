@@ -1,4 +1,5 @@
 %import textio
+%import errors
 
 ; SYMBOL TABLE.
 ; Capability: store names with their value (ubyte or uword, or temp placeholder for them).
@@ -85,7 +86,7 @@ symbols {
     sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
         ubyte hash = ht_calc_hash(symbol)
         if_cs {
-            txt.print("\n?hash error name too long\n")
+            err.print("hash error name too long")
             return false
         }
 
@@ -99,7 +100,7 @@ symbols {
                     return true
                 }
                 else -> {
-                    txt.print("\n?symbol already defined\n")
+                    err.print("symbol already defined")
                     return false
                 }
             }
@@ -117,7 +118,7 @@ symbols {
     sub setvalue_new(uword symbol, uword value, ubyte datatype) -> ubyte {
         ubyte hash = ht_calc_hash(symbol)
         if_cs {
-            txt.print("\n?hash error name too long\n")
+            err.print("hash error name too long")
             return false
         }
         return ht_add_entry(hash, symbol, value, datatype)
@@ -161,7 +162,7 @@ symbols {
     sub getvalue(uword symbol) -> ubyte {
         ubyte hash = ht_calc_hash(symbol)
         if_cs {
-            txt.print("\n?hash error name too long\n")
+            err.print("hash error name too long")
             return false
         }
 
@@ -241,11 +242,11 @@ symbols {
         ; NOTE: this routine assumes the symbol DOES NOT EXIST in the table yet!
         ubyte bucketcount = bucket_entry_counts[hash]
         if bucketcount >= max_entries_per_bucket {
-            txt.print("\n?hash bucket full, choose another symbol name\n")
+            err.print("hash bucket full, choose another symbol name")
             return false
         }
         if (entrybufferptr - entrybuffer) >= entrybuffer_size {
-            txt.print("\n?symbol table full, use less symbols...\n")
+            err.print("symbol table full, use less symbols")
             return false
         }
 
