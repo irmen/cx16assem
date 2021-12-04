@@ -13,7 +13,7 @@ words = [pw for pw in [process_word(w) for w in raw_words] if pw]
 def create_labelname(idx):
     w1 = random.choice(words)
     w2 = random.choice(words)
-    name = (w1+w2)[:25].upper()
+    name = (w1+w2)[:8].upper()
     return name + "." + str(idx) + random.choice(string.ascii_uppercase+string.digits)
 
 

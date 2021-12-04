@@ -40,8 +40,8 @@ symbols_dt {
 symbols {
     const ubyte max_name_len = 31       ; excluding the terminating 0.
     const ubyte num_buckets = 128
-    const ubyte max_entries_per_bucket = 12     ; can be adjusted if bucket full errors occur too often
-    const uword entrybuffer_size = $4800        ; can be as large as free ram allows (which runs up to $9f00)
+    const ubyte max_entries_per_bucket = 16     ; can be adjusted if bucket full errors occur too often
+    const uword entrybuffer_size = $4600        ; can be as large as free ram allows (which runs up to $9f00)
     ubyte[num_buckets] bucket_entry_counts
     uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
     uword num_entries
@@ -50,7 +50,7 @@ symbols {
         ; an entry consists of:
         ;  *     1 BYTE: datatype
         ;  *    2 BYTES: value
-        ;  * 2-32 BYTES: symbolname (variable length, terminated with 0)
+        ;  * 2-32 BYTES: symbolname (variable length, max 31 bytes, terminated with 0)
     uword entrybufferptr
 
 
@@ -64,8 +64,14 @@ symbols {
         num_entries = 0
 
         if sys.progend() >= $9f00-max_name_len*2 {
-            txt.print("\n\nerror: symbol table size exceeds free system ram\n\n")
+            txt.print("\n\nerror: symbol table size exceeds free system ram: ")
+            txt.print_uwhex(sys.progend(), true)
+            txt.nl()
             sys.exit(1)
+        } else {
+            txt.print("\ndebug: progend=")
+            txt.print_uwhex(sys.progend(), true)
+            txt.nl()
         }
     }
 
@@ -208,6 +214,12 @@ symbols {
             ubyte bk
             for bk in 0 to num_buckets-1 {
                 ubyte bucketcount = bucket_entry_counts[bk]
+;                txt.print("bucket ")
+;                txt.print_ub(bk)
+;                txt.print("=")
+;                txt.print_ub(bucketcount)
+;                txt.nl()
+
                 if bucketcount {
                     ubyte ix
                     for ix in 0 to bucketcount-1 {
@@ -281,6 +293,7 @@ symbols {
 
     ; calculate a reasonable byte hash code 0..127 (by adding all the characters and eoring with the length)
     ; returns ok status in Carry (carry clear=all OK carry set = symbol name too long)
+    ; hash code up to 127 because we need to use it to index ito a pointer (word) array.
     asmsub ht_calc_hash(uword symbol @R7) -> ubyte @A, ubyte @Pc {
         %asm {{
             stz  P8ZP_SCRATCH_B1        ; the hash
