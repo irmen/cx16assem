@@ -29,7 +29,7 @@ output {
             }
             2 -> {
                 next_output_bank = start_output_bank
-                bank_output_addr = 0
+                bank_output_addr = $c000    ; trigger immediate bank select at first emit()
             }
         }
     }
@@ -48,8 +48,8 @@ output {
     }
 
     sub emit(ubyte value) {
-        if bank_output_addr & 8191 == 0 {
-            ; switch to next output ram bank
+        if msb(bank_output_addr) == $c0 {
+            ; address has reached $c000, switch to next output ram bank
             cx16.rambank(next_output_bank)
             bank_output_addr = $a000        ; start address of 8kb banked ram
             next_output_bank++
