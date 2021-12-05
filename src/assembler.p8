@@ -203,7 +203,7 @@ main {
         time_phase2 = c64.RDTIM16()
         txt.nl()
         symbols.dump(15)
-        filestore.dump()
+        fileregistry.dump()
 
         if success {
             print_summary(cx16.r15, output.pc_min, output.pc_max)
@@ -257,6 +257,11 @@ main {
                 return false
             }
         }
+        if line==0 {
+            err.print("no lines in file")
+            return false
+        }
+
         cx16.r15 = line
         return true
     }

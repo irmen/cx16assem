@@ -2,9 +2,16 @@
 
 File-based 65c02 assembler for Commander-X16 (Work in progress)
 
-Requires recent prog8 compiler to build from source.
-
 Software License: MIT open source. (see file LICENSE)
+
+⚠️ **patched Kernal rom required**: This program requires [ZeroByte's patched Kernal](https://www.commanderx16.com/forum/index.php?/topic/2064-r39-patched-kernal-to-fix-load-into-hiram-functionality)
+LOAD routine to deal with the HIMEM banks correctly!
+Using the default unpatched V39 kernal Rom *will* crash the commander X16, and *can corrupt* your sd-card image! ⚠️
+
+You'll need a recent prog8 compiler to build the assembler from source.
+
+Also, due to remaining kernal / emulator bugs, *the file loading mechanism only
+works on an attached sdcard image in the emulator*. Host mounted filesystem doesn't work.
 
 
 ## Compiling the assembler
@@ -28,34 +35,28 @@ After successfully assembling a source file, a summary will be printed.
 You can then enter the filename to save the program as on disk (will overwrite existing file with the same name!).
 It's always saved in PRG format, so you can load the program again with ``LOAD "NAME",8,1``
 
-At the moment, the source file is cached in (V)RAM and so is limited to 62 Kb.
-
 ## Features
 
-- read source files (up to 62 Kb) directly from disk  (sdcard in the emulator)
-- write resulting output directly as PRG file to disk (sdcard in the emulator)
-- can assemble to any system memory location  
-- set program counter with "* = $9000"
-- numbers in decimal 12345, hex $abcd, binary %1010011
+- reads source files (any size) from disk  (sdcard)
+- write resulting output directly as PRG file to disk (sdcard)
+- can assemble to any system memory location 
+- set program counter with ```* = $9000```
+- numbers can be written in decimal ``12345``, hex ``$abcd``, binary ``%1010011``
 - symbolic labels
-- can use '<value' and '>value' to get the lsb and msb of a value respectively
+- use ``<value`` and ``>value`` to get the lsb and msb of a value respectively
 - define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"`` 
-- can switch to (the rom-based) x16edit to avoid having to swap-load programs all the time
-- disk device 8,9,10,11 selectable
+- can switch to (the rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time
+- disk device 8 and 9 selectable
 
 
 ## Todo
 
 - more assembler directives?
 
-- can we get it to work on a host mounted filesystem in the emulator?
-  
- 
 
 ### Maybe some day:
   
 - include / incbin  to read in separate files
-  these files have to be cached in banked ram to avoid having to reload them in phase 2
 
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 

@@ -1,5 +1,5 @@
 %import textio
-%import diskio
+%import cx16diskio
 %import string
 %import errors
 
@@ -7,125 +7,103 @@
 ; and to provide an iteration mechanism to retrieve the lines in sequential order
 ; (by copying them to a given line buffer in system memory).
 ;
-; For simplicity (not having to deal with ram-banking), the files are currently
-; read into the free area of VERA's upper vram bank  ($10000 - $1f900, about 62 kb contiguous memory)
-; This memory is unused in the default text screen mode.
+; Files are stored in HIRAM (the banked memory) starting in bank 1.
+; (bank 0 is used by basic and kernal).
 ;
-; You can load a certain limited number of files in the database and the total size must fit in those 62 Kb.
-;
-; Maybe in the future this could be changed to use regular (banked) system RAM instead,
-; which would allow for more and bigger files to be processed.
+; NOTE: this requires ZeroByte's patched Kernal LOAD routine to deal with the HIRAM banks correctly.
+;       using the default unpatched V39 kernal Rom WILL crash the cx16 and can CORRUPT your sd-card image!
+;       https://www.commanderx16.com/forum/index.php?/topic/2064-r39-patched-kernal-to-fix-load-into-hiram-functionality
+
 
 filereader {
     sub init() {
-        filestore.init()
+        fileregistry.init()
     }
 
     sub read_file(ubyte drivenumber, uword filename) -> ubyte {
         ubyte success = false
-        uword vram_addr = filestore.prepare()
-        if vram_addr==$ffff {
-            err.print("out of memory")
+        ubyte bank = fileregistry.get_load_bank()
+        uword address = fileregistry.get_load_address()
+        txt.print("loading ")
+        txt.print(filename)
+        uword size = cx16diskio.load_raw(drivenumber, filename, bank, address)
+        bank = cx16.getrambank()     ; store output bank
+        if size==0 {
+            err.print("load error")
             return false
-        }
-        if diskio.f_open(drivenumber, filename) {
-            ubyte[255] buffer           ; less than 256
-            str anim = "││╱╱──╲╲"
-            ubyte anim_counter = 0
-            uword start_address = vram_addr
-
-            txt.print("loading ")
-            txt.print(filename)
+        } else {
             txt.spc()
-            repeat {
-                if c64.STOP2() {
-                    err.print("break")
-                    goto error
-                }
-                ; read a chunk into ram...
-                uword length = diskio.f_read(&buffer, len(buffer))
-                if length==0
-                    break
-                if msb(vram_addr+length) >= $f9 {
-                    err.print("out of memory")
-                    goto error
-                }
-                txt.chrout(anim[anim_counter])
-                txt.chrout(157)     ; cursor left
-                anim_counter = (anim_counter+1) & 7
-                ; ... now copy that ram buffer to VERA vram
-                %asm {{
-                    stz  cx16.VERA_CTRL
-                    lda  vram_addr
-                    sta  cx16.VERA_ADDR_L
-                    lda  vram_addr+1
-                    sta  cx16.VERA_ADDR_M
-                    lda  #%00010001
-                    sta  cx16.VERA_ADDR_H
-                    lda  #<buffer
-                    sta  P8ZP_SCRATCH_W1
-                    lda  #>buffer
-                    sta  P8ZP_SCRATCH_W1+1
-                    ldy  #0
-_copyloop           lda  (P8ZP_SCRATCH_W1),y
-                    sta  cx16.VERA_DATA0
-                    iny
-                    cpy  length
-                    bne  _copyloop
-                }}
-                vram_addr += length
-            }
-            uword filesize = vram_addr-start_address
-            txt.print("\x9d ")
-            txt.print_uw(filesize)
+            txt.print_uw(size)
             txt.print(" bytes.\n")
-
-            if filestore.add(filename, filesize)
-                success = true
-error:
-            diskio.f_close()
+            return fileregistry.add(filename, size, bank)
         }
-        return success
     }
 
     uword @shared line_ptr
+    ubyte @shared line_bank
 
     ; returns true if the file's lines can be accessed via next_line(), false otherwise
     sub start_get_lines(str filename) -> ubyte {
-        ubyte index = filestore.search(filename)
+        ubyte index = fileregistry.search(filename)
         if index==$ff
             return false
-        line_ptr = filestore.addresses[index]
+        line_ptr = fileregistry.file_start_addresses[index]
+        line_bank = fileregistry.file_start_banks[index]
         return true
     }
 
-    asmsub next_line(uword buffer @AY) -> ubyte @A {
-        ; Optimized routine to copy the next line of text from vram to the system ram buffer.
-        ; Note that it is required to actually copy the line to a work buffer because the parser
+    sub next_line(uword buffer) -> ubyte {
+        cx16.rambank(line_bank)     ; have to reset this every time because kernal keeps resetting it
+        ; TODO : translate to assembly
+        repeat {
+            ubyte chr = @(line_ptr)
+            line_ptr++
+            if msb(line_ptr)==$c0 {
+                ; bank overflow, switch to next bank
+                line_bank++
+                cx16.rambank(line_bank)
+                line_ptr = $a000
+            }
+            when chr {
+                0 -> {
+                    @(buffer) = 0
+                    return false
+                }
+                10, 13 -> {
+                    @(buffer) = 0
+                    return true
+                }
+                else -> {
+                    @(buffer) = chr
+                }
+            }
+            buffer++
+        }
+    }
+
+    asmsub next_line_asm(uword buffer @AY) -> ubyte @A {
+        ; Optimized routine to copy the next line of text to te system ram line buffer.
+        ; Note that it is required to actually copy the line, because the parser
         ; modifies some characters in the buffer while parsing, and this has to be repeatable.
+        ; Also I don't want the parser to have to deal with crossing ram bank boundaries.
         ; Returns true when a line is available, false when EOF was reached.
         %asm {{
-            sta  P8ZP_SCRATCH_W1
-            sty  P8ZP_SCRATCH_W1+1
-            stz  cx16.VERA_CTRL
+            sta  P8ZP_SCRATCH_W2
+            sty  P8ZP_SCRATCH_W2+1
             lda  line_ptr
-            sta  cx16.VERA_ADDR_L
+            sta  P8ZP_SCRATCH_W1
             lda  line_ptr+1
-            sta  cx16.VERA_ADDR_M
-            lda  #%00010001
-            sta  cx16.VERA_ADDR_H
+            sta  P8ZP_SCRATCH_W1+1
             ldy  #0
-
-_lineloop   lda  cx16.VERA_DATA0
+_lineloop   lda  (P8ZP_SCRATCH_W1),y
             beq  _eof
-            cmp  #$0a
+            cmp  #10
             beq  _eol
-            cmp  #$0d
+            cmp  #13
             beq  _eol
-            sta  (P8ZP_SCRATCH_W1),y
+            sta  (P8ZP_SCRATCH_W2),y
             iny
             bra  _lineloop
-
 _eol        lda  #0
             sta  (P8ZP_SCRATCH_W1),y
             tya
@@ -136,7 +114,6 @@ _eol        lda  #0
             inc  line_ptr+1
 +           lda  #1
             rts
-
 _eof        sta  (P8ZP_SCRATCH_W1),y
             rts
         }}
@@ -144,51 +121,75 @@ _eof        sta  (P8ZP_SCRATCH_W1),y
 }
 
 
-filestore {
-    const ubyte max_num_files = 16
+fileregistry {
+    const ubyte max_num_files = 15
     uword names = memory("names", 256)
     uword names_ptr
-    str[max_num_files] name_ptrs
-    uword[max_num_files] addresses
-    uword[max_num_files] sizes
-    ubyte num_files
+    str[max_num_files] file_name_ptrs
+    ubyte[max_num_files] file_start_banks
+    uword[max_num_files] file_start_addresses
+    ubyte[max_num_files] file_end_banks
+    uword[max_num_files] file_end_addresses
     uword next_load_address
+    ubyte next_load_bank
+    ubyte num_files
 
     sub init() {
         num_files = 0
-        next_load_address = $0000
+        next_load_bank = 1              ; bank 0 is used by the kernal
+        next_load_address = $a001       ; TODO this works around a current bug in kernal LOAD when using $xx02 address
         names_ptr = names
     }
 
-    ; prepares the next file to be stored, returns the address where you may store the file in memory
-    ; returns $ffff if the memory is full.
-    sub prepare() -> uword {
-        if msb(next_load_address) <= $f9
-            if num_files < max_num_files
-                return next_load_address
-            else
-                err.print("too many files")
-        return $ffff
+    sub get_load_address() -> uword {
+        return next_load_address
     }
 
-    ; adds a file to the database, return true on success or false otherwise
-    sub add(str filename, uword size) -> ubyte {
+    sub get_load_bank() -> ubyte {
+        return next_load_bank
+    }
+
+    ; registers a file in the database, return true on success or false otherwise
+    sub add(str filename, uword size, ubyte last_bank) -> ubyte {
         if num_files >= max_num_files {
             err.print("too many files")
             return false
         }
+        if last_bank >= cx16.numbanks()-8 {
+            err.print("out of memory for files")
+            return false
+        }
 
-        name_ptrs[num_files] = names_ptr
+        file_name_ptrs[num_files] = names_ptr
         names_ptr += string.copy(filename, names_ptr) + 1
-        addresses[num_files] = next_load_address
-        next_load_address += size
-        ; tag the end of the file as a $00,$ff byte sequence
-        cx16.vpoke(1, next_load_address, 0)
+        file_start_addresses[num_files] = next_load_address
+        file_start_banks[num_files] = next_load_bank
+        next_load_bank = last_bank
+        next_load_address += (size & $1fff)
+        if msb(next_load_address) >= $c0
+            next_load_address -= $2000  ; correct bank overflow
+
+        @(next_load_address) = 0  ; add $00 end of file marker
         next_load_address++
-        cx16.vpoke(1, next_load_address, 255)
-        next_load_address++
-        sizes[num_files] = size
+        if msb(next_load_address) == $c0 {
+            next_load_bank++
+            next_load_address = $a000
+        }
+
+        if next_load_address==$a000 {
+            file_end_banks[num_files] = next_load_bank-1
+            file_end_addresses[num_files] = $bfff
+        } else {
+            file_end_banks[num_files] = next_load_bank
+            file_end_addresses[num_files] = next_load_address - 1
+        }
         num_files++
+
+        if(lsb(next_load_address)==0) {
+            ; TODO this works around a current bug in kernal LOAD when using $xx02 address
+            next_load_address++
+        }
+
         return true
     }
 
@@ -200,7 +201,7 @@ filestore {
             return $ff
         ubyte i
         for i in 0 to num_files-1 {
-            if string.compare(filename, name_ptrs[i])==0
+            if string.compare(filename, file_name_ptrs[i])==0
                 return i
         }
         return $ff
@@ -216,11 +217,15 @@ filestore {
         txt.print(" files:\n")
         ubyte i
         for i in 0 to num_files-1 {
-            txt.print_uwhex(addresses[i], true)
-            txt.print("  ")
-            txt.print_uw(sizes[i])
-            txt.print("  ")
-            txt.print(name_ptrs[i])
+            txt.print_ubhex(file_start_banks[i], false)
+            txt.chrout(':')
+            txt.print_uwhex(file_start_addresses[i], false)
+            txt.print(" - ")
+            txt.print_ubhex(file_end_banks[i], false)
+            txt.chrout(':')
+            txt.print_uwhex(file_end_addresses[i], false)
+            txt.print(" = ")
+            txt.print(file_name_ptrs[i])
             txt.nl()
         }
     }
