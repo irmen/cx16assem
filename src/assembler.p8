@@ -21,7 +21,7 @@ main {
                 txt.print("\n\n")
                 when filename[0] {
                     '$' -> list_asm_files()
-                    '!' -> {
+                    't' -> {
                         if filename[1] {
                             if filename[1]==' ' and filename[2]
                                 display_file(&filename+2)
@@ -29,7 +29,7 @@ main {
                                 display_file(&filename+1)
                         }
                     }
-                    '#' -> {
+                    'e' -> {
                         if filename[1] {
                             if filename[1]==' ' and filename[2]
                                 edit_file(&filename+2)
@@ -93,8 +93,8 @@ main {
         txt.print("Available commands:\n\n")
         txt.print("  $            - lists *.asm files on disk\n")
         txt.print("  a <filename> - assemble file\n")
-        txt.print("  ! <filename> - display contents of file\n")
-        txt.print("  # <filename> - start x16edit in rom bank 7 on file\n")
+        txt.print("  t <filename> - display contents of file\n")
+        txt.print("  e <filename> - start x16edit in rom bank 7 on file\n")
         txt.print("  d <number>   - select disk device number (8 or 9, default=8)\n")
         txt.print("  ? or h       - print this help.\n")
         txt.print("  q or x       - quit to basic.\n")
