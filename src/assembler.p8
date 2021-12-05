@@ -14,8 +14,6 @@ main {
 
     sub start() {
         str filename = "?" * 20
-        txt.lowercase()
-        txt.print("\uf10c")    ; light grey
         print_intro()
         repeat {
             txt.print("\n> ")
@@ -89,6 +87,8 @@ main {
     }
 
     sub print_intro() {
+        txt.lowercase()
+        txt.print("\uf10c")    ; light grey
         txt.print("\nCommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
         txt.print("Available commands:\n\n")
         txt.print("  $            - lists *.asm files on disk\n")
