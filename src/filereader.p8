@@ -52,33 +52,62 @@ filereader {
         return true
     }
 
-    sub next_line(uword buffer) -> ubyte {
-        cx16.rambank(line_bank)     ; have to reset this every time because kernal keeps resetting it
-        ; TODO : translate to assembly
-        repeat {
-            ubyte chr = @(line_ptr)
-            line_ptr++
-            if msb(line_ptr)==$c0 {
-                ; bank overflow, switch to next bank
-                line_bank++
-                cx16.rambank(line_bank)
-                line_ptr = $a000
-            }
-            when chr {
-                0 -> {
-                    @(buffer) = 0
-                    return false
-                }
-                10, 13 -> {
-                    @(buffer) = 0
-                    return true
-                }
-                else -> {
-                    @(buffer) = chr
-                }
-            }
-            buffer++
-        }
+    asmsub next_line(uword buffer @AY) -> ubyte @A {
+        ; copies the next line from line_ptr into buffer
+        ; stops at 0 (EOF), or 10/13 (EOL).
+        ; returns true if success, false if EOF was reached.
+        %asm {{
+            phx
+            sta  P8ZP_SCRATCH_W2
+            sty  P8ZP_SCRATCH_W2+1
+            lda  line_bank
+            sta  $00             ; set RAM bank, have to do this every time because kernal keeps resetting it
+            lda  line_ptr
+            ldy  line_ptr+1
+            sta  cx16.r0L
+            sty  cx16.r0H
+            ldy  #0             ; y = index into output buffer
+_charloop
+            lda  (cx16.r0)
+            tax
+            inc  cx16.r0L
+            bne  +
+            inc  cx16.r0H
++           lda  cx16.r0H
+            cmp  #$c0
+            bne  _processchar
+            ; bank overflow, switch to next bank
+            lda  line_bank
+            ina
+            sta  line_bank
+            sta  $00        ; set new RAM bank
+            stz  cx16.r0L
+            lda  #$a0
+            sta  cx16.r0H   ; at $a000 again
+_processchar
+            txa
+            bne  +
+            ; end of file
+            sta  (P8ZP_SCRATCH_W2),y
+            bra  _return
++           cmp  #10
+            beq  _eol
+            cmp  #13
+            beq  _eol
+            sta  (P8ZP_SCRATCH_W2),y
+            iny
+            bra  _charloop
+_eol        lda  #0
+            sta  (P8ZP_SCRATCH_W2),y
+            ina
+_return     ; remember the line pointer for next call
+            ldy  cx16.r0L
+            sty  line_ptr
+            ldy  cx16.r0H
+            sty  line_ptr+1
+            plx
+            rts
+        }}
     }
 
     asmsub next_line_asm(uword buffer @AY) -> ubyte @A {
