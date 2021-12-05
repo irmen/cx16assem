@@ -7,7 +7,6 @@
 %import errors
 %import test_stack
 %zeropage basicsafe
-%option no_sysinit
 
 main {
 
@@ -15,6 +14,8 @@ main {
 
     sub start() {
         str filename = "?" * 20
+        txt.lowercase()
+        txt.print("\uf10c")    ; light grey
         print_intro()
         repeat {
             txt.print("\n> ")
@@ -88,8 +89,8 @@ main {
     }
 
     sub print_intro() {
-        txt.print("\ncommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
-        txt.print("available commands:\n\n")
+        txt.print("\nCommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
+        txt.print("Available commands:\n\n")
         txt.print("  $            - lists *.asm files on disk\n")
         txt.print("  a <filename> - assemble file\n")
         txt.print("  ! <filename> - display contents of file\n")
@@ -196,14 +197,17 @@ main {
             txt.print(" (")
             txt.print_uw(symbols.numsymbols())
             txt.print(" symbols)\n")
+
+            ; print some debug info from phase 1
+            symbols.dump(15)
+            fileregistry.dump()
+            txt.nl()
+
             parser.start_phase(2)
             success = parse_file(filename)
         }
         parser.done()
         time_phase2 = c64.RDTIM16()
-        txt.nl()
-        symbols.dump(15)
-        fileregistry.dump()
 
         if success {
             print_summary(cx16.r15, output.pc_min, output.pc_max)
