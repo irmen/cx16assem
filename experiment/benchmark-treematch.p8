@@ -4,6 +4,8 @@
 %option no_sysinit
 
 
+; TODO use actual "instructions.p8" module from assembler
+
 main {
 
     sub start() {

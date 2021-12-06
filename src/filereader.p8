@@ -166,7 +166,7 @@ fileregistry {
     sub init() {
         num_files = 0
         next_load_bank = 1              ; bank 0 is used by the kernal
-        next_load_address = $a001       ; TODO this works around a current bug in kernal LOAD when using $xx02 address
+        next_load_address = $a000
         names_ptr = names
     }
 
@@ -213,11 +213,6 @@ fileregistry {
             file_end_addresses[num_files] = next_load_address - 1
         }
         num_files++
-
-        if(lsb(next_load_address)==0) {
-            ; TODO this works around a current bug in kernal LOAD when using $xx02 address
-            next_load_address++
-        }
 
         return true
     }
