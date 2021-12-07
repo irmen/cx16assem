@@ -19,8 +19,6 @@ instructions {
 
     ; NOTE: this prefix-tree mnemonic matcher is already very fast, it is a fraction of the time that's needed
     ;       to process the full line. It's not really productive to try to optimize this routine any more for speed.
-    ;       Maybe for size though.
-    ; TODO: try a hash based matcher.  Is it faster? And/or requires less program code?
 
     asmsub  match(uword mnemonic_ptr @AY) -> uword @AY {
         ; -- input: mnemonic_ptr in AY,   output:  pointer to instruction info structure or $0000 in AY

@@ -239,16 +239,8 @@ main {
         }
 
         uword line = 0
-        repeat {
-            sys.waitvsync()
-            repeat 1000 {
-                cx16.vpoke(1,$fa00,0)
-            }
-            cx16.vpoke(1,$fa00,$0f)
-            if not filereader.next_line(parser.input_line)
-                break
+        while filereader.next_line(parser.input_line) {
             line++
-            cx16.vpoke(1,$fa00,$f0)
             if not lsb(line)
                 txt.chrout('.')
             if not parser.process_line() {
@@ -269,7 +261,6 @@ main {
                 txt.nl()
                 return false
             }
-            cx16.vpoke(1,$fa00,$00)
         }
         if line==0 {
             err.print("no lines in file")
@@ -373,7 +364,6 @@ parser {
         ; string.lower(input_line)
         preprocess_assignment_spacing()
         split_input()
-        cx16.vpoke(1,$fa00,$88)
 
         if word_addrs[1] and @(word_addrs[1])=='='
             return do_assign()
@@ -475,11 +465,7 @@ parser {
     }
 
     sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> ubyte {
-        cx16.vpoke(1,$fa00,$00)
-        cx16.vpoke(1,$fa01,$0f)
         uword instruction_info_ptr = instructions.match(instr_ptr)
-        cx16.vpoke(1,$fa00,$20)
-        cx16.vpoke(1,$fa01,$00)
         if instruction_info_ptr {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
             ubyte addr_mode = parse_operand(operand_ptr)

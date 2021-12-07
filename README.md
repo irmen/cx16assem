@@ -57,6 +57,7 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - Parse phase 1 just builds the symbol table in system ram. This is a hash table for fast lookups.
 - Parse phase 2 actually outputs machine code into the last 8 himem banks (64 Kb max output size).
 - Finally, the data in these output banks is written to the output prg file on disk.
+- Mnemonics matching is done via an optimal prefix-tree match routine that takes very few instructions to find the match
 
 ## Todo
 
