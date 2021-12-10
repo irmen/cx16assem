@@ -175,6 +175,10 @@ symbols {
         uword entry_ptr = ht_find_entry_in_bucket(hash, symbol)
         if entry_ptr {
             cx16.r1 = @(entry_ptr)
+            if cx16.r1 != symbols_dt.dt_ubyte and cx16.r1 != symbols_dt.dt_uword {
+                ; must be a placeholder that is not defined yet
+                return false
+            }
             cx16.r0 = peekw(entry_ptr+1)
             return true
         }
@@ -235,8 +239,11 @@ symbols {
                         if @(entryptr)==symbols_dt.dt_ubyte {
                             txt.print("  ")
                             txt.print_ubhex(@(entryptr+1), true)
-                        } else {
+                        } else if @(entryptr)==symbols_dt.dt_uword {
                             txt.print_uwhex(peekw(entryptr+1), true)
+                        } else {
+                            ; undefined symbol
+                            txt.print("?????")
                         }
                         txt.print(" = ")
                         txt.print(entryptr+3)
