@@ -41,6 +41,8 @@ filereader {
 
     uword @shared line_ptr
     ubyte @shared line_bank
+    uword @shared end_ptr
+    ubyte @shared end_bank
 
     ; returns true if the file's lines can be accessed via next_line(), false otherwise
     sub start_get_lines(str filename) -> ubyte {
@@ -49,6 +51,8 @@ filereader {
             return false
         line_ptr = fileregistry.file_start_addresses[index]
         line_bank = fileregistry.file_start_banks[index]
+        end_ptr = fileregistry.file_end_addresses[index]
+        end_bank = fileregistry.file_end_banks[index]
         return true
     }
 
@@ -110,40 +114,18 @@ _return     ; remember the line pointer for next call
         }}
     }
 
-    asmsub next_line_asm(uword buffer @AY) -> ubyte @A {
-        ; Optimized routine to copy the next line of text to te system ram line buffer.
-        ; Note that it is required to actually copy the line, because the parser
-        ; modifies some characters in the buffer while parsing, and this has to be repeatable.
-        ; Also I don't want the parser to have to deal with crossing ram bank boundaries.
-        ; Returns true when a line is available, false when EOF was reached.
+    ; returns true if the file's bytes can be accessed via next_byte(), false otherwise
+    sub start_get_bytes(str filename) -> ubyte {
+        txt.print("\nget bytes for:")
+        txt.print(filename)
+        txt.print("<<\n")
+        return start_get_lines(filename)
+    }
+
+    asmsub next_byte() -> ubyte @A, ubyte @Pc {
         %asm {{
-            sta  P8ZP_SCRATCH_W2
-            sty  P8ZP_SCRATCH_W2+1
-            lda  line_ptr
-            sta  P8ZP_SCRATCH_W1
-            lda  line_ptr+1
-            sta  P8ZP_SCRATCH_W1+1
-            ldy  #0
-_lineloop   lda  (P8ZP_SCRATCH_W1),y
-            beq  _eof
-            cmp  #10
-            beq  _eol
-            cmp  #13
-            beq  _eol
-            sta  (P8ZP_SCRATCH_W2),y
-            iny
-            bra  _lineloop
-_eol        lda  #0
-            sta  (P8ZP_SCRATCH_W1),y
-            tya
+            lda  #0
             sec
-            adc  line_ptr
-            sta  line_ptr
-            bcc  +
-            inc  line_ptr+1
-+           lda  #1
-            rts
-_eof        sta  (P8ZP_SCRATCH_W1),y
             rts
         }}
     }

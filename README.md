@@ -43,7 +43,9 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - numbers can be written in decimal ``12345``, hex ``$abcd``, binary ``%1010011``
 - symbolic labels
 - use ``<value`` and ``>value`` to get the lsb and msb of a value respectively
-- define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"`` 
+- define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"``
+- include binary data from a file using ``.incbin "filename"``   *being implemented*
+- include source code from a file using ``.include "filename"``   *being implemented*
 - disk device 8 and 9 selectable
 - can switch to (rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time.
   You'll have to create a custom rom with x16edit embedded in it in bank 7, see [instructions](https://github.com/stefan-b-jakobsson/x16-edit/blob/master/docs/romnotes.pdf). 
@@ -60,8 +62,6 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - Mnemonics matching is done via an optimal prefix-tree match routine that takes very few instructions to find the match
 
 ## Todo
-
-- more assembler directives such as include / incbin  to read source or data from separate files
 
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 

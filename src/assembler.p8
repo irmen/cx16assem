@@ -232,7 +232,7 @@ main {
         }
 
         cx16.r15 = 0
-        txt.print("parsing")
+        txt.print("parsing...")
         if not filereader.start_get_lines(filename) {
             err.print("can't read lines")
             return false
@@ -799,6 +799,10 @@ _yes        lda  #1
                 return proces_directive_word(operand)
             else if string.compare(directive, ".str")==0
                 return proces_directive_str(operand)
+            else if string.compare(directive, ".include")==0
+                return process_directive_include(operand, false)
+            else if string.compare(directive, ".incbin")==0
+                return process_directive_include(operand, true)
         }
 
         err.print("syntax error")
@@ -894,6 +898,50 @@ _yes        lda  #1
 
         err.print("syntax error")
         return false
+    }
+
+    sub process_directive_include(uword operand, ubyte is_incbin) -> ubyte {
+        if operand[0]=='\"'
+            operand++
+        uword filename = operand
+        while @(operand) {
+            if @(operand)=='\"' or @(operand)=='\n' {
+                @(operand) = 0
+                break
+            }
+            operand++
+        }
+
+        if phase==2 {
+            if is_incbin {
+                ; TODO actually process the included file (source code or binary)
+                ;      push current file on stack, pop afterwards
+                err.print("incbin not yet implemented")
+                return false
+;                if not filereader.start_get_bytes(filename) {
+;                    err.print("can't read file data")
+;                    return false
+;                }
+;                repeat {
+;                    cx16.r0L = filereader.next_byte()
+;                    if_cs
+;                        return true
+;                    ; output.emit(cx16.r0L)
+;                }
+            } else {
+                ; TODO actually process the included file (source code or binary)
+                ;      push current file on stack, pop afterwards
+                err.print("include not yet implemented")
+                return false
+            }
+        }
+
+        if not filereader.read_file(main.drivenumber, filename) {
+            txt.nl()
+            txt.print(diskio.status(main.drivenumber))
+            return false
+        }
+        return true
     }
 
     asmsub str_is1(uword st @R0, ubyte char @A) clobbers(Y) -> ubyte @A {

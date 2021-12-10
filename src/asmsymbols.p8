@@ -41,7 +41,7 @@ symbols {
     const ubyte max_name_len = 31       ; excluding the terminating 0.
     const ubyte num_buckets = 128
     const ubyte max_entries_per_bucket = 16     ; can be adjusted if bucket full errors occur too often
-    const uword entrybuffer_size = $4400        ; can be as large as free ram allows (which runs up to $9f00)
+    const uword entrybuffer_size = $4300        ; can be as large as free ram allows (which runs up to $9f00)
     ubyte[num_buckets] bucket_entry_counts
     uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
     uword num_entries
@@ -257,7 +257,7 @@ symbols {
             err.print("hash bucket full, choose another symbol name")
             return false
         }
-        if (entrybufferptr - entrybuffer) >= entrybuffer_size {
+        if (entrybufferptr - entrybuffer + 256) >= entrybuffer_size {
             err.print("symbol table full, use less symbols")
             return false
         }
