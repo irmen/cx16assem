@@ -18,6 +18,7 @@
 filereader {
     sub init() {
         fileregistry.init()
+        file_stack_ptr = 0
     }
 
     sub read_file(ubyte drivenumber, uword filename) -> ubyte {
@@ -39,37 +40,53 @@ filereader {
         }
     }
 
-    uword @shared line_ptr
-    ubyte @shared line_bank
-    uword @shared end_ptr
-    ubyte @shared end_bank
+    uword[fileregistry.max_num_files] line_ptrs
+    ubyte[fileregistry.max_num_files] line_banks
+    uword[fileregistry.max_num_files] end_ptrs
+    ubyte[fileregistry.max_num_files] end_banks
+    uword[fileregistry.max_num_files] current_lines
+    ubyte file_stack_ptr
+
+    sub get_line_nr() -> uword {
+        return current_lines[file_stack_ptr]
+    }
+
+    sub file_size(str filename) -> uword {
+        ubyte index = fileregistry.search(filename)
+        if index==$ff
+            return 0
+        uword startaddr = fileregistry.file_start_addresses[index]
+        uword startbank = fileregistry.file_start_banks[index]
+        uword endaddr = fileregistry.file_end_addresses[index]
+        uword endbank = fileregistry.file_end_banks[index]
+        return $2000*(endbank-startbank) + endaddr - startaddr
+    }
 
     ; returns true if the file's lines can be accessed via next_line(), false otherwise
     sub start_get_lines(str filename) -> ubyte {
         ubyte index = fileregistry.search(filename)
         if index==$ff
             return false
-        line_ptr = fileregistry.file_start_addresses[index]
-        line_bank = fileregistry.file_start_banks[index]
-        end_ptr = fileregistry.file_end_addresses[index]
-        end_bank = fileregistry.file_end_banks[index]
+        line_ptrs[file_stack_ptr] = fileregistry.file_start_addresses[index]
+        line_banks[file_stack_ptr] = fileregistry.file_start_banks[index]
+        end_ptrs[file_stack_ptr] = fileregistry.file_end_addresses[index]
+        end_banks[file_stack_ptr] = fileregistry.file_end_banks[index]
+        current_lines[file_stack_ptr] = 0
         return true
     }
 
-    asmsub next_line(uword buffer @AY) -> ubyte @A {
+    sub next_line(uword buffer) -> ubyte {
         ; copies the next line from line_ptr into buffer
         ; stops at 0 (EOF), or 10/13 (EOL).
         ; returns true if success, false if EOF was reached.
+        cx16.r0 = line_ptrs[file_stack_ptr]
+        cx16.rambank(line_banks[file_stack_ptr])   ; set RAM bank, have to do this every time because kernal keeps resetting it
         %asm {{
             phx
+            lda  buffer
+            ldy  buffer+1
             sta  P8ZP_SCRATCH_W2
             sty  P8ZP_SCRATCH_W2+1
-            lda  line_bank
-            sta  $00             ; set RAM bank, have to do this every time because kernal keeps resetting it
-            lda  line_ptr
-            ldy  line_ptr+1
-            sta  cx16.r0L
-            sty  cx16.r0H
             ldy  #0             ; y = index into output buffer
 _charloop
             lda  (cx16.r0)
@@ -81,10 +98,13 @@ _charloop
             cmp  #$c0
             bne  _processchar
             ; bank overflow, switch to next bank
-            lda  line_bank
+            phy
+            ldy  file_stack_ptr
+            lda  line_banks,y
             ina
-            sta  line_bank
+            sta  line_banks,y
             sta  $00        ; set new RAM bank
+            ply
             stz  cx16.r0L
             lda  #$a0
             sta  cx16.r0H   ; at $a000 again
@@ -105,29 +125,75 @@ _eol        lda  #0
             sta  (P8ZP_SCRATCH_W2),y
             ina
 _return     ; remember the line pointer for next call
-            ldy  cx16.r0L
-            sty  line_ptr
-            ldy  cx16.r0H
-            sty  line_ptr+1
+            sta  cx16.r1L       ; return value t/f
             plx
-            rts
         }}
+        line_ptrs[file_stack_ptr] = cx16.r0
+        current_lines[file_stack_ptr]++
+        return cx16.r1L
     }
 
     ; returns true if the file's bytes can be accessed via next_byte(), false otherwise
     sub start_get_bytes(str filename) -> ubyte {
-        txt.print("\nget bytes for:")
-        txt.print(filename)
-        txt.print("<<\n")
-        return start_get_lines(filename)
+        if start_get_lines(filename) {
+            incbin_bank = line_banks[file_stack_ptr]
+            incbin_addr = line_ptrs[file_stack_ptr]
+            incbin_end_bank = end_banks[file_stack_ptr]
+            incbin_end_addr = end_ptrs[file_stack_ptr]
+            return true
+        }
+        return false
     }
+
+    ubyte @shared incbin_bank
+    uword @shared incbin_addr
+    ubyte @shared incbin_end_bank
+    uword @shared incbin_end_addr
 
     asmsub next_byte() -> ubyte @A, ubyte @Pc {
         %asm {{
+            lda  incbin_bank
+            cmp  incbin_end_bank
+            bne  _more
+            lda  incbin_addr
+            cmp  incbin_end_addr
+            bne  _more
+            lda  incbin_addr+1
+            cmp  incbin_end_addr+1
+            bne  _more
             lda  #0
-            sec
+            sec                 ; end of file
+            rts
+_more       lda  incbin_bank
+            sta  $0             ; make sure to set the ram bank again because other code changes it
+            lda  incbin_addr
+            sta  P8ZP_SCRATCH_W1
+            lda  incbin_addr+1
+            sta  P8ZP_SCRATCH_W1+1
+            lda  (P8ZP_SCRATCH_W1)
+            pha
+            inc  incbin_addr
+            bne  +
+            inc  incbin_addr+1
++           lda  incbin_addr+1
+            cmp  #$c0
+            bne  +
+            ; bank overflow, skip to next bank
+            inc  incbin_bank
+            lda  #$a0
+            sta  incbin_addr+1
++           pla
+            clc             ; there's more
             rts
         }}
+    }
+
+    sub push_file() {
+        file_stack_ptr++
+    }
+
+    sub pop_file() {
+        file_stack_ptr--
     }
 }
 

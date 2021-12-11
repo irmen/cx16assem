@@ -238,14 +238,10 @@ main {
             return false
         }
 
-        uword line = 0
         while filereader.next_line(parser.input_line) {
-            line++
-            if not lsb(line)
-                txt.chrout('.')
             if not parser.process_line() {
                 txt.print("\n\n\x12error.\x92\n last line #")
-                txt.print_uw(line)
+                txt.print_uw(filereader.get_line_nr())
                 txt.print(": ")
                 txt.print(parser.word_addrs[0])
                 if parser.word_addrs[1] {
@@ -262,12 +258,12 @@ main {
                 return false
             }
         }
-        if line==0 {
+        if filereader.get_line_nr()==0 {
             err.print("no lines in file")
             return false
         }
 
-        cx16.r15 = line
+        cx16.r15 = filereader.get_line_nr()
         return true
     }
 
@@ -912,36 +908,42 @@ _yes        lda  #1
             operand++
         }
 
-        if phase==2 {
-            if is_incbin {
-                ; TODO actually process the included file (source code or binary)
-                ;      push current file on stack, pop afterwards
-                err.print("incbin not yet implemented")
-                return false
-;                if not filereader.start_get_bytes(filename) {
-;                    err.print("can't read file data")
-;                    return false
-;                }
-;                repeat {
-;                    cx16.r0L = filereader.next_byte()
-;                    if_cs
-;                        return true
-;                    ; output.emit(cx16.r0L)
-;                }
-            } else {
-                ; TODO actually process the included file (source code or binary)
-                ;      push current file on stack, pop afterwards
-                err.print("include not yet implemented")
-                return false
+        when phase {
+            1 -> {
+                if not filereader.read_file(main.drivenumber, filename) {
+                    txt.nl()
+                    txt.print(diskio.status(main.drivenumber))
+                    return false
+                }
+                output.add_pc(filereader.file_size(filename))
+                return true
+            }
+            2 -> {
+                if is_incbin {
+                    ; include binary data in the output
+                    filereader.push_file()
+                    if not filereader.start_get_bytes(filename) {
+                        err.print("can't read file data")
+                        filereader.pop_file()
+                        return false
+                    }
+                    repeat {
+                        cx16.r0L = filereader.next_byte()
+                        if_cs {
+                            filereader.pop_file()
+                            return true
+                        }
+                        output.emit(cx16.r0L)
+                    }
+                } else {
+                    ; TODO actually process the included source file
+                    ;      push current file on stack, pop afterwards
+                    err.print("include not yet implemented")
+                    return false
+                }
             }
         }
-
-        if not filereader.read_file(main.drivenumber, filename) {
-            txt.nl()
-            txt.print(diskio.status(main.drivenumber))
-            return false
-        }
-        return true
+        return false
     }
 
     asmsub str_is1(uword st @R0, ubyte char @A) clobbers(Y) -> ubyte @A {

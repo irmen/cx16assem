@@ -49,6 +49,10 @@ output {
         program_counter += num_operand_bytes
     }
 
+    sub add_pc(uword amount) {
+        program_counter += amount
+    }
+
     sub emit(ubyte value) {
         cx16.rambank(next_output_bank)      ; always select ram bank because other code changes this
         @(bank_output_addr) = value
