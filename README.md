@@ -47,8 +47,10 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - include binary data from a file using ``.incbin "filename"``   *being implemented*
 - include source code from a file using ``.include "filename"``   *being implemented*
 - disk device 8 and 9 selectable
+- configurable text and screen colors
 - can switch to (rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time.
-  You'll have to create a custom rom with x16edit embedded in it in bank 7, see [instructions](https://github.com/stefan-b-jakobsson/x16-edit/blob/master/docs/romnotes.pdf). 
+  You'll have to create a custom rom with x16edit embedded in it in bank 7, see [instructions](https://github.com/stefan-b-jakobsson/x16-edit/blob/master/docs/romnotes.pdf).
+  (version 0.4.1 or later is required)
 
 
 ## How it works internally

@@ -56,9 +56,9 @@ filereader {
         if index==$ff
             return 0
         uword startaddr = fileregistry.file_start_addresses[index]
-        uword startbank = fileregistry.file_start_banks[index]
+        ubyte startbank = fileregistry.file_start_banks[index]
         uword endaddr = fileregistry.file_end_addresses[index]
-        uword endbank = fileregistry.file_end_banks[index]
+        ubyte endbank = fileregistry.file_end_banks[index]
         return $2000*(endbank-startbank) + endaddr - startaddr
     }
 

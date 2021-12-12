@@ -12,17 +12,24 @@
 main {
 
     ubyte drivenumber = 8
+    ubyte text_color = 1
+    ubyte background_color = 11
 
     sub start() {
         str filename = "?" * 20
         print_intro()
         repeat {
+            if background_color==13
+                txt.color(0)
+            else
+                txt.color(13)
             txt.print("\n> ")
+            txt.color(text_color)
             if txt.input_chars(filename) {
                 txt.print("\n\n")
                 when filename[0] {
                     '$' -> list_asm_files()
-                    't' -> {
+                    'd' -> {
                         if filename[1] {
                             if filename[1]==' ' and filename[2]
                                 display_file(&filename+2)
@@ -42,7 +49,17 @@ main {
                         ;test_stack.test()
                         print_intro()
                     }
-                    'd' -> {
+                    'a' -> {
+                        symbols.init()
+                        filereader.init()
+                        if filename[1] {
+                            if filename[1]==' ' and filename[2]
+                                file_input(&filename+2)
+                            else
+                                file_input(&filename+1)
+                        }
+                    }
+                    '#' -> {
                         if filename[1] {
                             ubyte drivenum
                             if filename[1]==' ' and filename[2]
@@ -56,16 +73,18 @@ main {
                             txt.nl()
                         }
                     }
-                    'a' -> {
-                        symbols.init()
-                        filereader.init()
-                        if filename[1] {
-                            if filename[1]==' ' and filename[2]
-                                file_input(&filename+2)
-                            else
-                                file_input(&filename+1)
-                            break
-                        }
+                    't' -> {
+                        text_color++
+                        if text_color==background_color
+                            text_color++
+                        text_color &= 15
+                    }
+                    'b' -> {
+                        background_color++
+                        if text_color==background_color
+                            background_color++
+                        background_color &= 15
+                        print_intro()
                     }
                     '?', 'h' -> print_intro()
                     'q', 'x' -> return
@@ -74,6 +93,28 @@ main {
             }
         }
     }
+
+    sub print_intro() {
+            txt.color2(text_color, background_color)
+            txt.clear_screen()
+            txt.lowercase()
+            if background_color==13
+                txt.color(0)
+            else
+                txt.color(13)
+            txt.print("\n\x12Commander-x16 65c02 file based assembler\x92\n https://github.com/irmen/cx16assem\n\n")
+            txt.color(text_color)
+            txt.print("Available commands:\n\n" +
+            "  $            - lists *.asm files on disk\n" +
+            "  a <filename> - assemble file\n" +
+            "  d <filename> - display contents of file\n" +
+            "  e <filename> - start x16edit in rom bank 7 on file\n")
+            txt.print("  # <number>   - select disk device number (8 or 9, default=8)\n" +
+            "  t            - cycle text color\n" +
+            "  b            - cycle background color\n" +
+            "  ? or h       - print this help.\n" +
+            "  q or x       - quit to basic.\n")
+        }
 
     sub set_drivenumber(ubyte nr) {
         if nr==8 or nr==9 {
@@ -87,24 +128,16 @@ main {
         }
     }
 
-    sub print_intro() {
-        txt.lowercase()
-        txt.print("\uf10c")    ; light grey
-        txt.print("\nCommander-x16 65c02 file based assembler. \x12work in progress\x92\nsource code: https://github.com/irmen/cx16assem\n\n")
-        txt.print("Available commands:\n\n")
-        txt.print("  $            - lists *.asm files on disk\n")
-        txt.print("  a <filename> - assemble file\n")
-        txt.print("  t <filename> - display contents of file\n")
-        txt.print("  e <filename> - start x16edit in rom bank 7 on file\n")
-        txt.print("  d <number>   - select disk device number (8 or 9, default=8)\n")
-        txt.print("  ? or h       - print this help.\n")
-        txt.print("  q or x       - quit to basic.\n")
-    }
-
     sub edit_file(uword filename) {
         ; activate x16edit, assumed to be in rom bank 7,
         ;   see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
         cx16.rombank(7)
+        cx16.r1H = %00000010
+        cx16.r2L = 4
+        cx16.r2H = 80
+        cx16.r3L = drivenumber
+        cx16.r3H = background_color<<4 | text_color
+        cx16.r4 = 0     ; default colors for status bar and headers
         if filename {
             cx16.r0 = filename
             cx16.r1L = string.length(filename)
@@ -112,15 +145,16 @@ main {
                 phx
                 ldx  #1
                 ldy  #255
-                jsr  $c003
+                jsr  $c006
                 plx
             }}
         } else {
+            cx16.r1L = 0
             %asm {{
                 phx
                 ldx  #1
                 ldy  #255
-                jsr  $c000
+                jsr  $c006
                 plx
             }}
         }
@@ -340,7 +374,7 @@ io_error:
 parser {
     ; byte counts per address mode id:
     ubyte[17] operand_size = [$ff, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 2]
-    const ubyte max_line_length = 160
+    const ubyte max_line_length = 80
 
     str input_line = "?" * max_line_length
     uword[3] word_addrs
