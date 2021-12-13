@@ -6,7 +6,6 @@
 %import filereader
 %import instructions
 %import errors
-%import test_stack
 %zeropage basicsafe
 
 main {
@@ -16,8 +15,9 @@ main {
     ubyte background_color = 11
 
     sub start() {
-        str filename = "?" * 20
+        str commandline = "?" * 20
         print_intro()
+        diskio.filename[0] = 0
         repeat {
             if background_color==13
                 txt.color(0)
@@ -25,48 +25,37 @@ main {
                 txt.color(13)
             txt.print("\n> ")
             txt.color(text_color)
-            if txt.input_chars(filename) {
+            if txt.input_chars(commandline) {
                 txt.print("\n\n")
-                when filename[0] {
+                uword argptr = 0
+                if commandline[1]
+                    argptr = &commandline+1
+                if commandline[1]==' ' and commandline[2]
+                    argptr = &commandline+2
+                when commandline[0] {
                     '$' -> list_asm_files()
                     'd' -> {
-                        if filename[1] {
-                            if filename[1]==' ' and filename[2]
-                                display_file(&filename+2)
-                            else
-                                display_file(&filename+1)
-                        }
+                        if argptr
+                            display_file(argptr)
                     }
                     'e' -> {
-                        if filename[1] {
-                            if filename[1]==' ' and filename[2]
-                                edit_file(&filename+2)
-                            else
-                                edit_file(&filename+1)
-                        }
+                        if argptr
+                            edit_file(argptr)
                         else
                             edit_file(0)
-                        ;test_stack.test()
                         print_intro()
                     }
                     'a' -> {
-                        symbols.init()
-                        filereader.init()
-                        if filename[1] {
-                            if filename[1]==' ' and filename[2]
-                                file_input(&filename+2)
-                            else
-                                file_input(&filename+1)
+                        if argptr {
+                            symbols.init()
+                            filereader.init()
+                            diskio.filename[0] = 0
+                            file_input(argptr)
                         }
                     }
                     '#' -> {
-                        if filename[1] {
-                            ubyte drivenum
-                            if filename[1]==' ' and filename[2]
-                                drivenum = filename[2]
-                            else
-                                drivenum = filename[1]
-                            set_drivenumber(drivenum-'0')
+                        if argptr {
+                            set_drivenumber(argptr[0]-'0')
                         } else {
                             txt.print("current disk drive is ")
                             txt.print_ub(drivenumber)
@@ -86,6 +75,14 @@ main {
                         background_color &= 15
                         print_intro()
                     }
+                    'r' -> {
+                        if argptr
+                            string.copy(argptr, diskio.filename)
+                        if diskio.filename[0]
+                            run_file(diskio.filename)
+                        else
+                            err.print("no previous filename")
+                    }
                     '?', 'h' -> print_intro()
                     'q', 'x' -> return
                     else -> err.print("invalid command")
@@ -95,26 +92,61 @@ main {
     }
 
     sub print_intro() {
-            txt.color2(text_color, background_color)
-            txt.clear_screen()
-            txt.lowercase()
-            if background_color==13
-                txt.color(0)
-            else
-                txt.color(13)
-            txt.print("\n\x12Commander-x16 65c02 file based assembler\x92\n https://github.com/irmen/cx16assem\n\n")
-            txt.color(text_color)
-            txt.print("Available commands:\n\n" +
-            "  $            - lists *.asm files on disk\n" +
-            "  a <filename> - assemble file\n" +
-            "  d <filename> - display contents of file\n" +
-            "  e <filename> - start x16edit in rom bank 7 on file\n")
-            txt.print("  # <number>   - select disk device number (8 or 9, default=8)\n" +
-            "  t            - cycle text color\n" +
-            "  b            - cycle background color\n" +
-            "  ? or h       - print this help.\n" +
-            "  q or x       - quit to basic.\n")
+        txt.color2(text_color, background_color)
+        txt.clear_screen()
+        txt.lowercase()
+        if background_color==13
+            txt.color(0)
+        else
+            txt.color(13)
+
+        txt.print("\n\x12Commander-x16 65c02 file based assembler\x92\n https://github.com/irmen/cx16assem\n\n")
+        txt.color(text_color)
+        txt.print("Available commands:\n\n" +
+        "  $            - lists *.asm files on disk\n" +
+        "  a <filename> - assemble file\n" +
+        "  d <filename> - display contents of file\n" +
+        "  e <filename> - start x16edit in rom bank 7 on file\n")
+        txt.print("  r <filename> - load and run file, use previously saved file if unspecified\n" +
+        "  # <number>   - select disk device number (8 or 9, default=8)\n" +
+        "  t            - cycle text color\n" +
+        "  b            - cycle background color\n")
+        txt.print("  ? or h       - print this help.\n" +
+        "  q or x       - quit to basic.\n")
+    }
+
+    sub run_file(str filename) {
+        txt.print("loading: ")
+        txt.print(filename)
+        txt.print(".prg ")
+        ; TODO check if program would overwrite the assembler if loaded.
+        ;      but we currently only have the progend() which includes all bss allocated memory...
+        if diskio.f_open(drivenumber, filename) {
+            uword load_address
+            void diskio.f_read(&load_address, 2)
+            diskio.f_close()
+            txt.print_uwhex(load_address, true)
+            txt.chrout('-')
+            uword end_address = diskio.load(drivenumber, filename, 0)
+            if end_address {
+                txt.print_uwhex(end_address, true)
+                txt.nl()
+                txt.nl()
+                %asm {{
+                    lda  #<_continue-1
+                    pha
+                    lda  #>_continue-1
+                    pha
+                    jmp  (load_address)
+_continue
+                }}
+            }
+        } else {
+            txt.print(diskio.status(drivenumber))
         }
+
+        txt.nl()
+    }
 
     sub set_drivenumber(ubyte nr) {
         if nr==8 or nr==9 {
@@ -331,11 +363,11 @@ main {
     sub save_program(uword start_address, uword end_address) {
 
         txt.print("\nenter filename to save as (without .prg) > ")
-        if txt.input_chars(main.start.filename) {
+        if txt.input_chars(main.start.commandline) {
             txt.print("\nsaving...")
-            diskio.delete(drivenumber, main.start.filename)
+            diskio.delete(drivenumber, main.start.commandline)
 
-            if diskio.f_open_w(drivenumber, main.start.filename) {
+            if diskio.f_open_w(drivenumber, main.start.commandline) {
                 ubyte[2] prgheader
                 prgheader[0] = lsb(start_address)
                 prgheader[1] = msb(start_address)
@@ -358,6 +390,7 @@ main {
                 }
 
                 diskio.f_close_w()
+                diskio.filename = main.start.commandline      ; keep the filename we just saved to
                 return
             }
 

@@ -51,6 +51,7 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - can switch to (rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time.
   You'll have to create a custom rom with x16edit embedded in it in bank 7, see [instructions](https://github.com/stefan-b-jakobsson/x16-edit/blob/master/docs/romnotes.pdf).
   (version 0.4.1 or later is required)
+- includes a convenient 'r' run command to immediately load and execute the saved program file (or another file) to speed up work flow.
 - for speed purposes, the source text is parsed in a case-sensitive way.
   Everything has to be in lowercase petscii, or it will be a syntax error. Except labels; they can contain upppercase petscii letters if you want.
 
