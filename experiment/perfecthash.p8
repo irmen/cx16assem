@@ -238,7 +238,7 @@ _result     .byte 0
         ; -- input: instruction info struct ptr @AY,  desired addr_mode @X
         ;    output: opcode @A,   valid @carrybit
         %asm {{
-            ; TODO
+            ; ..... stopped testing here as the code is already a lot slower than the prefix-tree matcher
             lda  #0
             sec
             rts

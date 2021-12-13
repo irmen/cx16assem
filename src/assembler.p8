@@ -132,12 +132,12 @@ main {
         ; activate x16edit, assumed to be in rom bank 7,
         ;   see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
         cx16.rombank(7)
-        cx16.r1H = %00000010
+        cx16.r1H = %00000001        ; enable auto-indent
         cx16.r2L = 4
         cx16.r2H = 80
         cx16.r3L = drivenumber
         cx16.r3H = background_color<<4 | text_color
-        cx16.r4 = 0     ; default colors for status bar and headers
+        cx16.r4 = 0                 ; choose default colors for status bar and headers
         if filename {
             cx16.r0 = filename
             cx16.r1L = string.length(filename)
