@@ -775,19 +775,20 @@ parser {
 
 ; this is rewritten in assembly because of inner loop optimizations
 ;    sub is_symbol_start_char(ubyte chr) -> ubyte {
-;        ; note: chr is already lowercased
+;        ; note: chr is not lowercased yet
+;        chr &= $7f
 ;        if chr>='a' and chr <= 'z'
 ;            return true
 ;        return chr=='.' or chr=='@'
 ;    }
 
     asmsub is_symbol_start_char(ubyte chr @A) -> ubyte @A {
-        ; note: chr is already lowercased
         %asm {{
             cmp  #'.'
             beq  _yes
             cmp  #'@'
             beq  _yes
+            and  #$7f       ; make lowercase
             cmp  #'a'
             bcc  _no
             cmp  #'z'+1
@@ -1028,10 +1029,11 @@ _is_2_entry
     }
 
     sub str_trimleft(uword st) -> uword {
+        cx16.r0 = st
         repeat {
-            when @(st) {
-                ' ', 9, 160 -> st++
-                else -> return st
+            when @(cx16.r0) {
+                ' ', 9, 160 -> cx16.r0++
+                else -> return cx16.r0
             }
         }
         return 0
