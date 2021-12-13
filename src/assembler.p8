@@ -88,7 +88,7 @@ main {
                     }
                     '?', 'h' -> print_intro()
                     'q', 'x' -> return
-                    else -> txt.print("?invalid command\n")
+                    else -> err.print("invalid command")
                 }
             }
         }
@@ -124,7 +124,7 @@ main {
             txt.nl()
         }
         else {
-            txt.print("?invalid drive number\n")
+            err.print("invalid drive number")
         }
     }
 
@@ -203,7 +203,7 @@ main {
                     break
                 }
                 if c64.STOP2() {
-                    txt.print("?break\n")
+                    err.print("break")
                     break
                 }
             }
@@ -391,18 +391,16 @@ parser {
     }
 
     sub process_line() -> ubyte {
-        ; string.lower(input_line)
         preprocess_assignment_spacing()
         split_input()
 
-        if word_addrs[1] and @(word_addrs[1])=='='
-            return do_assign()
-        else if @(word_addrs[0])=='.'
+        if @(word_addrs[0])=='.'
             return process_assembler_directive(word_addrs[0], word_addrs[1])
-        else
+        if not word_addrs[1]
             return do_label_instr()
-
-        return false
+        if @(word_addrs[1])=='='
+            return do_assign()
+        return do_label_instr()
     }
 
     sub done() {
@@ -416,8 +414,8 @@ parser {
             return false
         }
 
-        void string.lower(word_addrs[0])
-        void string.lower(word_addrs[2])
+        ;void string.lower(word_addrs[0])
+        ;void string.lower(word_addrs[2])
 
         ubyte valid_operand=false
         if @(word_addrs[2])=='*' {
@@ -441,7 +439,7 @@ parser {
             }
             return true
         }
-        txt.print("?invalid operand in assign\n")
+        err.print("invalid operand in assign")
         return false
     }
 
@@ -451,9 +449,9 @@ parser {
         uword operand_ptr = 0
         ubyte starts_with_whitespace = input_line[0]==' ' or input_line[0]==9 or input_line[0]==160
 
-        void string.lower(word_addrs[0])
-        void string.lower(word_addrs[1])
-        void string.lower(word_addrs[2])
+;        void string.lower(word_addrs[0])
+;        void string.lower(word_addrs[1])
+;        void string.lower(word_addrs[2])
 
         if word_addrs[2] {
             label_ptr = word_addrs[0]
@@ -479,7 +477,7 @@ parser {
             if @(lastlabelchar) == ':'
                 @(lastlabelchar) = 0
             if instructions.match(label_ptr) {
-                txt.print("?label cannot be a mnemonic\n")
+                err.print("label cannot be an instruction")
                 return false
             }
             if phase==1 {
@@ -536,7 +534,7 @@ parser {
                         opcode = instructions.opcode(instruction_info_ptr, addr_mode)
 
                     if not opcode {
-                        txt.print("?invalid instruction\n")
+                        err.print("invalid instruction")
                         return false
                     }
                 }
@@ -555,11 +553,11 @@ parser {
                                 output.program_counter--
                                 cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
                             } else {
-                                txt.print("?invalid operand for zpr\n")
+                                err.print("invalid operand for zpr")
                                 return false
                             }
                         } else {
-                            txt.print("?invalid operand for zpr\n")
+                            err.print("invalid operand for zpr")
                             return false
                         }
                     }
@@ -582,10 +580,10 @@ parser {
                 }
                 return true
             }
-            txt.print("?invalid operand\n")
+            err.print("invalid operand")
             return false
         }
-        txt.print("?invalid instruction\n")
+        err.print("invalid instruction")
         return false
     }
 
@@ -593,11 +591,11 @@ parser {
         cx16.r14 = cx16.r15 - output.program_counter - 2
         if msb(cx16.r14)  {
             if cx16.r14 < $ff80 {
-                txt.print("?branch out of range\n")
+                err.print("branch out of range")
                 return false
             }
         } else if cx16.r14 > $007f {
-            txt.print("?branch out of range\n")
+            err.print("branch out of range")
             return false
         }
         return true
@@ -821,7 +819,7 @@ _yes        lda  #1
 
     sub process_assembler_directive(uword directive, uword operand) -> ubyte {
         ; we recognise .byte, .word and .str right now
-        void string.lower(directive)
+        ; void string.lower(directive)
         if operand {
             if string.compare(directive, ".byte")==0
                 return proces_directive_byte(operand)
@@ -843,7 +841,7 @@ _yes        lda  #1
         ubyte length = conv.any2uword(operand)
         if length {
             if msb(cx16.r15) {
-                txt.print("?byte value too large\n")
+                err.print("value too large")
                 return false
             }
             if phase==2
@@ -859,7 +857,7 @@ _yes        lda  #1
                 if not length
                     break
                 if msb(cx16.r15) {
-                    txt.print("?byte value too large\n")
+                    err.print("value too large")
                     return false
                 }
                 if phase==2
