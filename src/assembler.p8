@@ -123,9 +123,9 @@ main {
             void diskio.f_read(&load_address, 2)
             diskio.f_close()
             c64.SETMSG(%10000000)       ; enable kernal status messages for load
-            uword end_address = diskio.load(drivenumber, filename, 0)
+            cx16.r1 = diskio.load(drivenumber, filename, 0)
             c64.SETMSG(0)
-            if end_address {
+            if cx16.r1 {
                 txt.nl()
                 txt.nl()
                 %asm {{

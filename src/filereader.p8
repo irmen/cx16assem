@@ -27,16 +27,17 @@ filereader {
         uword address = fileregistry.get_load_address()
         txt.print("loading ")
         txt.print(filename)
-        uword size = cx16diskio.load_raw(drivenumber, filename, bank, address)
+        cx16.r1 = cx16diskio.load_raw(drivenumber, filename, bank, address)
         bank = cx16.getrambank()     ; store output bank
-        if size==0 {
+        cx16.r1 = cx16diskio.load_size(bank, address, cx16.r1)
+        if not cx16.r1 {
             err.print("load error")
             return false
         } else {
             txt.spc()
-            txt.print_uw(size)
+            txt.print_uw(cx16.r1)
             txt.print(" bytes.\n")
-            return fileregistry.add(filename, size, bank)
+            return fileregistry.add(filename, cx16.r1, bank)
         }
     }
 
