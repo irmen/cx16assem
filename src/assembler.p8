@@ -116,33 +116,24 @@ main {
     }
 
     sub run_file(str filename) {
-        txt.print("loading: ")
-        txt.print(filename)
-        txt.print(".prg ")
         ; TODO check if program would overwrite the assembler if loaded.
         ;      but we currently only have the progend() which includes all bss allocated memory...
         if diskio.f_open(drivenumber, filename) {
             uword load_address
             void diskio.f_read(&load_address, 2)
             diskio.f_close()
-            txt.print_uwhex(load_address, true)
-            txt.chrout('-')
+            c64.SETMSG(%10000000)       ; enable kernal status messages for load
             uword end_address = diskio.load(drivenumber, filename, 0)
+            c64.SETMSG(0)
             if end_address {
-                txt.print_uwhex(end_address, true)
                 txt.nl()
                 txt.nl()
                 %asm {{
-                    lda  #<_continue-1
-                    pha
-                    lda  #>_continue-1
-                    pha
                     jmp  (load_address)
-_continue
                 }}
             }
         } else {
-            txt.print(diskio.status(drivenumber))
+            err.print(diskio.status(drivenumber))
         }
 
         txt.nl()
@@ -210,8 +201,7 @@ _continue
             diskio.lf_end_list()
             return
         }
-        txt.nl()
-        txt.print(diskio.status(drivenumber))
+        err.print(diskio.status(drivenumber))
     }
 
     sub display_file(uword filename) {
@@ -241,7 +231,7 @@ _continue
             }
             diskio.f_close()
         } else {
-            txt.print(diskio.status(drivenumber))
+            err.print(diskio.status(drivenumber))
         }
         cx16.rombank(4)     ; switch back to basic rom
     }
@@ -290,8 +280,7 @@ _continue
 
         if parser.phase==1 {
             if not filereader.read_file(drivenumber, filename) {
-                txt.nl()
-                txt.print(diskio.status(drivenumber))
+                err.print(diskio.status(drivenumber))
                 return false
             }
             time_load = c64.RDTIM16()
@@ -395,10 +384,10 @@ _continue
             }
 
 io_error:
-            txt.print(diskio.status(drivenumber))
+            err.print(diskio.status(drivenumber))
 
 ;            if not diskio.save(drivenumber, main.start.filename, start_address, end_address-start_address) {
-;                txt.print(diskio.status(drivenumber))
+;                err.print(diskio.status(drivenumber))
 ;            }
         }
     }
@@ -977,8 +966,7 @@ _yes        lda  #1
         when phase {
             1 -> {
                 if not filereader.read_file(main.drivenumber, filename) {
-                    txt.nl()
-                    txt.print(diskio.status(main.drivenumber))
+                    err.print(diskio.status(main.drivenumber))
                     return false
                 }
                 output.add_pc(filereader.file_size(filename))
