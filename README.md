@@ -14,7 +14,7 @@ works on an attached sdcard image in the emulator*. Host mounted filesystem does
 You'll need a very recent prog8 compiler to build the assembler from source, probably even a dev version
 that hasn't been officially released yet.
 
-
+![Assembler screenshot](./screenshot.png "Screenshot of the assembler running in X16 emulator")
 
 ## Compiling the assembler
 
