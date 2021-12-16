@@ -28,17 +28,16 @@ filereader {
         txt.print("loading ")
         txt.print(filename)
         cx16.r1 = cx16diskio.load_raw(drivenumber, filename, bank, address)
-        bank = cx16.getrambank()     ; store output bank
-        cx16.r1 = cx16diskio.load_size(bank, address, cx16.r1)
         if not cx16.r1 {
             err.print("load error")
             return false
-        } else {
-            txt.spc()
-            txt.print_uw(cx16.r1)
-            txt.print(" bytes.\n")
-            return fileregistry.add(filename, cx16.r1, bank)
         }
+        bank = cx16.getrambank()     ; store output bank
+        cx16.r1 = cx16diskio.load_size(bank, address, cx16.r1)
+        txt.spc()
+        txt.print_uw(cx16.r1)
+        txt.print(" bytes.\n")
+        return fileregistry.add(filename, cx16.r1, bank)
     }
 
     uword[fileregistry.max_num_files] line_ptrs

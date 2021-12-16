@@ -50,7 +50,7 @@ main {
                             symbols.init()
                             filereader.init()
                             diskio.filename[0] = 0
-                            file_input(argptr)
+                            assemble_file(argptr)
                         }
                     }
                     '#' -> {
@@ -240,7 +240,7 @@ main {
     uword time_phase1
     uword time_phase2
 
-    sub file_input(uword filename) {
+    sub assemble_file(uword filename) {
 
         txt.print("\x12assembling ")
         txt.print(filename)
@@ -249,6 +249,7 @@ main {
         c64.SETTIM(0,0,0)
         parser.start_phase(1)
         ubyte success = parse_file(filename)
+
         if success {
             time_phase1 = c64.RDTIM16()
             txt.print(" (")
