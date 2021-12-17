@@ -18,7 +18,7 @@
 filereader {
     sub init() {
         fileregistry.init()
-        file_stack_ptr = 0
+        file_stack_ptr = 255
     }
 
     sub read_file(ubyte drivenumber, uword filename) -> ubyte {

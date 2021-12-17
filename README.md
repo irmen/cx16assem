@@ -44,8 +44,8 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - symbolic labels
 - use ``<value`` and ``>value`` to get the lsb and msb of a value respectively
 - define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"``
-- include binary data from a file using ``.incbin "filename"``   *being implemented*
-- include source code from a file using ``.include "filename"``   *being implemented*
+- include binary data from a file using ``.incbin "filename"``
+- include source code from a file using ``.include "filename"``
 - disk device 8 and 9 selectable
 - configurable text and screen colors
 - can switch to (rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time.

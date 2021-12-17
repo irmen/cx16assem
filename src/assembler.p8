@@ -276,6 +276,14 @@ main {
 
     sub parse_file(uword filename) -> ubyte {
         ; returns success status, and last processed line number in cx16.r15
+        filereader.push_file()
+        ubyte success = internal_parse_file(filename)
+        filereader.pop_file()
+        return success
+    }
+
+    sub internal_parse_file(uword filename) -> ubyte {
+        ; returns success status, and last processed line number in cx16.r15
 
         if parser.phase==1 {
             if not filereader.read_file(drivenumber, filename) {
@@ -964,12 +972,16 @@ _yes        lda  #1
 
         when phase {
             1 -> {
-                if not filereader.read_file(main.drivenumber, filename) {
-                    err.print(diskio.status(main.drivenumber))
-                    return false
+                if is_incbin {
+                    if not filereader.read_file(main.drivenumber, filename) {
+                        err.print(diskio.status(main.drivenumber))
+                        return false
+                    }
+                    output.add_pc(filereader.file_size(filename))
+                    return true
+                } else {
+                    return main.parse_file(filename)        ; recursive call
                 }
-                output.add_pc(filereader.file_size(filename))
-                return true
             }
             2 -> {
                 if is_incbin {
@@ -989,10 +1001,7 @@ _yes        lda  #1
                         output.emit(cx16.r0L)
                     }
                 } else {
-                    ; TODO actually process the included source file
-                    ;      push current file on stack, pop afterwards
-                    err.print("include not yet implemented")
-                    return false
+                    return main.parse_file(filename)        ; recursive call
                 }
             }
         }
