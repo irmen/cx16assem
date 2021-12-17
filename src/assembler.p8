@@ -77,7 +77,7 @@ main {
                     }
                     'r' -> {
                         if argptr
-                            string.copy(argptr, diskio.filename)
+                            void string.copy(argptr, diskio.filename)
                         if diskio.filename[0]
                             run_file(diskio.filename)
                         else
@@ -209,7 +209,6 @@ main {
         txt.print(filename)
         txt.nl()
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
-        ubyte success = false
         if diskio.f_open(drivenumber, filename) {
             uword line = 0
             repeat {
@@ -220,8 +219,7 @@ main {
                 txt.print(": ")
                 txt.print(parser.input_line)
                 txt.nl()
-                if c64.READST() {
-                    success = c64.READST()&64==64       ; end of file?
+                if c64.READST() & 64 {
                     break
                 }
                 if c64.STOP2() {

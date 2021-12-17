@@ -22,7 +22,6 @@ filereader {
     }
 
     sub read_file(ubyte drivenumber, uword filename) -> ubyte {
-        ubyte success = false
         ubyte bank = fileregistry.get_load_bank()
         uword address = fileregistry.get_load_address()
         txt.print("loading ")
