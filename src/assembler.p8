@@ -140,14 +140,16 @@ main {
     }
 
     sub set_drivenumber(ubyte nr) {
-        if nr==8 or nr==9 {
-            drivenumber = nr
-            txt.print("selected disk drive ")
-            txt.print_ub(drivenumber)
-            txt.nl()
-        }
-        else {
-            err.print("invalid drive number")
+        when nr {
+            8, 9 -> {
+                drivenumber = nr
+                txt.print("selected disk drive ")
+                txt.print_ub(drivenumber)
+                txt.nl()
+            }
+            else -> {
+                err.print("invalid drive number")
+            }
         }
     }
 
@@ -476,7 +478,11 @@ parser {
         uword label_ptr = 0
         uword instr_ptr = 0
         uword operand_ptr = 0
-        ubyte starts_with_whitespace = input_line[0]==' ' or input_line[0]==9 or input_line[0]==160
+        ubyte starts_with_whitespace
+
+        when input_line[0] {
+            ' ', 9, 160 -> starts_with_whitespace=true
+        }
 
 ;        void string.lower(word_addrs[0])
 ;        void string.lower(word_addrs[1])
@@ -647,10 +653,9 @@ parser {
                 ; lda #$99   Immediate
                 operand_ptr++
                 ubyte lsbmsb = @(operand_ptr)
-                if lsbmsb=='<' or lsbmsb=='>' {
-                    operand_ptr++
-                } else {
-                    lsbmsb = 0
+                when lsbmsb {
+                    '<', '>' -> operand_ptr++
+                    else -> lsbmsb = 0
                 }
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
@@ -963,9 +968,11 @@ _yes        lda  #1
             operand++
         uword filename = operand
         while @(operand) {
-            if @(operand)=='\"' or @(operand)=='\n' {
-                @(operand) = 0
-                break
+            when @(operand) {
+                '\"', '\n' -> {
+                    @(operand) = 0
+                    break
+                }
             }
             operand++
         }
@@ -1124,9 +1131,9 @@ _is_2_entry
             char_idx++
         }
 
-        char = trimmed[char_idx]
-        if char==' ' or char==9 or char==160 or char==';'
-            trimmed[char_idx] = 0
+        when trimmed[char_idx] {
+            ' ', 9, 160, ';' -> trimmed[char_idx] = 0
+        }
     }
 
     sub debug_print_words() {        ; TODO remove
