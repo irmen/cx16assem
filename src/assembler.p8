@@ -478,11 +478,7 @@ parser {
         uword label_ptr = 0
         uword instr_ptr = 0
         uword operand_ptr = 0
-        ubyte starts_with_whitespace
-
-        when input_line[0] {
-            ' ', 9, 160 -> starts_with_whitespace=true
-        }
+        ubyte starts_with_whitespace = input_line[0] in [' ', 9, 160]
 
 ;        void string.lower(word_addrs[0])
 ;        void string.lower(word_addrs[1])
@@ -968,11 +964,9 @@ _yes        lda  #1
             operand++
         uword filename = operand
         while @(operand) {
-            when @(operand) {
-                '\"', '\n' -> {
-                    @(operand) = 0
-                    break
-                }
+            if @(operand) in ['\"', '\n'] {
+                @(operand) = 0
+                break
             }
             operand++
         }
@@ -1131,9 +1125,8 @@ _is_2_entry
             char_idx++
         }
 
-        when trimmed[char_idx] {
-            ' ', 9, 160, ';' -> trimmed[char_idx] = 0
-        }
+        if trimmed[char_idx] in [' ', 9, 160, ';']
+            trimmed[char_idx] = 0
     }
 
     sub debug_print_words() {        ; TODO remove
