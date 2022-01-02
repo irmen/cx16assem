@@ -22,21 +22,20 @@ filereader {
     }
 
     sub read_file(ubyte drivenumber, uword filename) -> ubyte {
-        ubyte bank = fileregistry.get_load_bank()
+        ubyte start_bank = fileregistry.get_load_bank()
         uword address = fileregistry.get_load_address()
         txt.print("loading ")
         txt.print(filename)
-        cx16.r1 = cx16diskio.load_raw(drivenumber, filename, bank, address)
+        cx16.r1 = cx16diskio.load_raw(drivenumber, filename, start_bank, address)
         if not cx16.r1 {
             err.print("load error")
             return false
         }
-        bank = cx16.getrambank()     ; store output bank
-        cx16.r1 = cx16diskio.load_size(bank, address, cx16.r1)
+        cx16.r1 = cx16diskio.load_size(start_bank, address, cx16.r1)
         txt.spc()
         txt.print_uw(cx16.r1)
         txt.print(" bytes.\n")
-        return fileregistry.add(filename, cx16.r1, bank)
+        return fileregistry.add(filename, cx16.r1, cx16.getrambank())
     }
 
     uword[fileregistry.max_num_files] line_ptrs
