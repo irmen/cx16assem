@@ -128,9 +128,7 @@ main {
             if cx16.r1 {
                 txt.nl()
                 txt.nl()
-                %asm {{
-                    jmp  (load_address)
-                }}
+                goto load_address
             }
         } else {
             err.print(diskio.status(drivenumber))
