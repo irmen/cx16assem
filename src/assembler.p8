@@ -571,11 +571,10 @@ parser {
                 if phase==2 {
                     if addr_mode==instructions.am_Zpr {
                         ; instructions like BBR4 $zp,$aaaa   (dual-operand)
-                        uword comma = string.find(operand_ptr,',')
-                        if comma {
-                            comma++
+                        ubyte comma_idx = string.find(operand_ptr,',')
+                        if_cs {
                             cx16.r13 = cx16.r15
-                            if parse_operand(comma) {
+                            if parse_operand(operand_ptr+comma_idx+1) {
                                 output.program_counter++
                                 if not calc_relative_branch_into_r14()
                                     return false
@@ -1139,7 +1138,8 @@ _is_2_entry
     }
 
     sub preprocess_assignment_spacing() {
-        if not string.find(input_line, '=')
+        void string.find(input_line, '=')
+        if_cc
             return
 
         ; split the line around the '='

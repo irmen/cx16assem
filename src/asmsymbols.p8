@@ -43,9 +43,9 @@ symbols {
     const ubyte max_entries_per_bucket = 16     ; can be adjusted if bucket full errors occur too often
     const uword entrybuffer_size = $4000        ; can be as large as free ram allows (which runs up to $9f00)
     ubyte[num_buckets] bucket_entry_counts
-    uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2)
+    uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2, 0)
     uword num_entries
-    uword entrybuffer = memory("entrybuffer", entrybuffer_size)
+    uword entrybuffer = memory("entrybuffer", entrybuffer_size, 0)
         ; the entry buffer is a large block of memory in which the entries are stored.
         ; an entry consists of:
         ;  *     1 BYTE: datatype

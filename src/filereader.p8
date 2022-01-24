@@ -198,7 +198,7 @@ _more       lda  incbin_bank
 
 fileregistry {
     const ubyte max_num_files = 15
-    uword names = memory("names", 256)
+    uword names = memory("names", 256, 0)
     uword names_ptr
     str[max_num_files] file_name_ptrs
     ubyte[max_num_files] file_start_banks
