@@ -473,9 +473,9 @@ parser {
     }
 
     sub do_label_instr() -> ubyte {
-        uword label_ptr = 0
-        uword instr_ptr = 0
-        uword operand_ptr = 0
+        uword @zp label_ptr = 0
+        uword @zp instr_ptr = 0
+        uword @zp operand_ptr = 0
         ubyte starts_with_whitespace = input_line[0] in [' ', 9, 160]
 
 ;        void string.lower(word_addrs[0])
@@ -522,10 +522,10 @@ parser {
     }
 
     sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> ubyte {
-        uword instruction_info_ptr = instructions.match(instr_ptr)
+        uword @zp instruction_info_ptr = instructions.match(instr_ptr)
         if instruction_info_ptr {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
-            ubyte addr_mode = parse_operand(operand_ptr)
+            ubyte @zp addr_mode = parse_operand(operand_ptr)
 
             if addr_mode {
                 ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
@@ -637,9 +637,9 @@ parser {
         if operand_ptr==0
             return instructions.am_Imp
 
-        uword sym_ptr
+        uword @zp sym_ptr
         ubyte @zp firstchr = @(operand_ptr)
-        ubyte parsed_len
+        ubyte @zp parsed_len
         when firstchr {
             0 -> return instructions.am_Imp
             '#' -> {
