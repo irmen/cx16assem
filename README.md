@@ -4,15 +4,11 @@ File-based 65c02 assembler for Commander-X16 (*Work in progress*)
 
 Software License: MIT open source, see file LICENSE.
 
-⚠️ requirements: patched v39 roms, sdcard image (no host filesystem passthrough) ⚠️
-- requires [ZeroByte's patched Kernal](https://www.commanderx16.com/forum/index.php?/topic/2064-r39-patched-kernal-to-fix-load-into-hiram-functionality)
-LOAD routine to deal with the HIRAM banks correctly!
-Using the default unpatched V39 kernal Rom *will* crash the commander X16, and *can corrupt* your sd-card image!
-- due to remaining kernal / emulator bugs, *the file loading mechanism only
-works on an attached sdcard image in the emulator*. Host mounted filesystem doesn't work.
+⚠️ requires Commander X16 r40 roms and emulator ⚠️
 
-You'll need a very recent prog8 compiler to build the assembler from source, probably even a dev version
-that hasn't been officially released yet.
+You'll need a very recent prog8 compiler to build the assembler from source.
+If the latest official release gives you problems compiling this program, you may have to use 
+the git master version that hasn't been officially released yet.
 
 ![Assembler screenshot](./screenshot.png "Screenshot of the assembler running in X16 emulator")
 
@@ -66,6 +62,8 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - Mnemonics matching is done via an optimal prefix-tree match routine that takes very few instructions to find the match
 
 ## Todo
+
+- handle buffer overflow problem when source line is too long (limit is 160 for now, so should not be a problem in practice)
 
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 

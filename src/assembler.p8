@@ -403,7 +403,7 @@ io_error:
 parser {
     ; byte counts per address mode id:
     ubyte[17] operand_size = [$ff, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 1, 1, 2, 1, 2]
-    const ubyte max_line_length = 80
+    const ubyte max_line_length = 160
 
     str input_line = "?" * max_line_length
     uword[3] word_addrs
@@ -532,6 +532,8 @@ parser {
                 if_cc {
                     ; most likely an invalid instruction BUT could also be a branching instruction
                     ; that needs its "absolute" operand recalculated as relative.
+                    ; another possibility is lda $00ff,y which is initially parsed as lda zp,y -
+                    ; but that does not exist - and should become lda abs,y
                     ubyte retry = false
                     when addr_mode {
                         instructions.am_Abs -> {
@@ -555,6 +557,10 @@ parser {
                         }
                         instructions.am_Zp -> {
                             addr_mode = instructions.am_Abs
+                            retry = true
+                        }
+                        instructions.am_ZpY -> {
+                            addr_mode = instructions.am_AbsY
                             retry = true
                         }
                     }
