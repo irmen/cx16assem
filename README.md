@@ -63,8 +63,6 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 
 ## Todo
 
-- handle buffer overflow problem when source line is too long (limit is 160 for now, so should not be a problem in practice)
-
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 
 - local scoped labels, relative labels (+/-)
@@ -72,3 +70,5 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - macros?
 
 - better error descriptions?
+
+- handle buffer overflow problem when source line is too long (limit is 160 for now, so should not be a problem in practice)

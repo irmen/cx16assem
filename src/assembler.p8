@@ -744,8 +744,7 @@ parser {
                     ; enter it in the symbol table preliminary, and assume it is a word datatype.
                     ; (if that is not correct, the symbol should be defined before use to correct this...)
                     cx16.r15 = output.program_counter  ; to avoid branch Rel errors
-                    ; we know the symbol isn't defined yet so just set a new one (without check)
-                    ubyte symbol_idx = symbols.setvalue2_new(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
+                    ubyte symbol_idx = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
                     if not symbol_idx
                         return instructions.am_Invalid
                     return operand_determine_abs_or_zp_addrmode(operand_ptr)
