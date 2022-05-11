@@ -1,10 +1,8 @@
 # cx16assem
 
-File-based 65c02 assembler for Commander-X16 (*Work in progress*)
+File-based 65c02 assembler for Commander-X16
 
 Software License: MIT open source, see file LICENSE.
-
-⚠️ requires Commander X16 r40 roms and emulator ⚠️
 
 You'll need a very recent prog8 compiler to build the assembler from source.
 If the latest official release gives you problems compiling this program, you may have to use 
@@ -35,6 +33,7 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - reads source files (any size) from disk  (sdcard)
 - write resulting output directly as PRG file to disk (sdcard)
 - can assemble to any system memory location 
+- able to assemble into programs of up to 64Kb in output size
 - set program counter with ```* = $9000```
 - numbers can be written in decimal ``12345``, hex ``$abcd``, binary ``%1010011``
 - symbolic labels
@@ -44,22 +43,21 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - include source code from a file using ``.include "filename"``
 - disk device 8 and 9 selectable
 - configurable text and screen colors
-- can switch to (rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time.
-  You'll have to create a custom rom with x16edit embedded in it in bank 7, see [instructions](https://github.com/stefan-b-jakobsson/x16-edit/blob/master/docs/romnotes.pdf).
-  (version 0.4.1 or later is required)
-- includes a convenient 'r' run command to immediately load and execute the saved program file (or another file) to speed up work flow.
-- for speed purposes, the source text is parsed in a case-sensitive way.
+- can switch to (rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time
+  You'll have to create a custom rom with x16edit embedded in it, see [instructions](https://github.com/stefan-b-jakobsson/x16-edit/blob/master/docs/romnotes.pdf)
+- includes a convenient 'r' run command to immediately load and execute the saved program file (or another file) to speed up work flow
+- for speed reasons, the source text is parsed in a case-sensitive way.
   Everything has to be in lowercase petscii, or it will be a syntax error. Except labels; they can contain upppercase petscii letters if you want.
+- likewise, for speed reasons, there's a line length limit of 160 characters that is not checked. Don't use source code lines that exceed this length or it will corrupt the program.
 
 ## How it works internally
-- Files are read sequentially into the banked hiram $a000-$c000, starting from bank 1 (bank 0 is reserved)
-  (uses kernal LOAD for this to achieve high load speeds)
+- Files are read into the banked hiram $a000-$c000, starting from bank 1 (bank 0 is reserved)
 - Metadata about the files (name, address, size) is stored in tables in regular system ram.
 - Parsing is done on lines from the source files that are copied to a small buffer in system ram to be tokenized.
 - Parse phase 1 just builds the symbol table in system ram. This is a hash table for fast lookups.
 - Parse phase 2 actually outputs machine code into the last 8 himem banks (64 Kb max output size).
 - Finally, the data in these output banks is written to the output prg file on disk.
-- Mnemonics matching is done via an optimal prefix-tree match routine that takes very few instructions to find the match
+- Mnemonics matching is done via an optimal prefix-tree match routine that takes very few instructions to find the match.
 
 ## Todo
 
@@ -70,5 +68,3 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 - macros?
 
 - better error descriptions?
-
-- handle buffer overflow problem when source line is too long (limit is 160 for now, so should not be a problem in practice)

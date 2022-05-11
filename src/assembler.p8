@@ -152,9 +152,20 @@ main {
     }
 
     sub edit_file(uword filename) {
-        ; activate x16edit, assumed to be in rom bank 7,
-        ;   see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
-        cx16.rombank(7)
+        ; activate x16edit, see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
+        ubyte x16edit_bank
+        for x16edit_bank in 31 downto 0  {
+            cx16.rombank(x16edit_bank)
+            if string.compare($fff0, "x16edit")==0
+                break   ; found the x16edit rom tag
+        }
+        if not x16edit_bank {
+            err.print("no x16edit in rom")
+            sys.wait(120)
+            return
+        }
+        cx16.rombank(x16edit_bank)
+
         cx16.r1H = %00000001        ; enable auto-indent
         cx16.r2L = 4
         cx16.r2H = 80
