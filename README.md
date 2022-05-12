@@ -61,9 +61,15 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 
 ## Todo
 
+- smart 'a' command to remember filename of previous run (like r)
+
+- 'a+r' command to assemble and immediately run the resulting program (auto select save filename?)
+ 
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 
-- local scoped labels, relative labels (+/-)
+- relative labels (+/++/-/--)
+
+- localy scoped labels, or at least a new scope for included assembly files to avoid name clashes
 
 - macros?
 
