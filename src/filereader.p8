@@ -70,13 +70,18 @@ filereader {
         end_ptrs[file_stack_ptr] = fileregistry.file_end_addresses[index]
         end_banks[file_stack_ptr] = fileregistry.file_end_banks[index]
         current_lines[file_stack_ptr] = 0
+        lines_exhausted = false
         return true
     }
+
+    ubyte lines_exhausted
 
     sub next_line(uword buffer) -> ubyte {
         ; copies the next line from line_ptr into buffer
         ; stops at 0 (EOF), or 10/13 (EOL).
-        ; returns true if success, false if EOF was reached.
+        ; returns true if success, false if no line was copied (EOF).
+        if lines_exhausted
+            return false
         cx16.r0 = line_ptrs[file_stack_ptr]
         cx16.rambank(line_banks[file_stack_ptr])   ; set RAM bank, have to do this every time because kernal keeps resetting it
         %asm {{
@@ -110,8 +115,8 @@ _processchar
             txa
             bne  +
             ; end of file
-            sta  (P8ZP_SCRATCH_W2),y
-            bra  _return
+            inc  lines_exhausted
+            bra  _eol
 +           cmp  #10
             beq  _eol
             cmp  #13

@@ -265,10 +265,10 @@ main {
             txt.print_uw(symbols.numsymbols())
             txt.print(" symbols)\n")
 
-            ; print some debug info from phase 1
-            symbols.dump(15)
-            fileregistry.dump()
-            txt.nl()
+            ; print some debug info from phase 1:
+            ; symbols.dump(15)
+            ; fileregistry.dump()
+            ; txt.nl()
 
             parser.start_phase(2)
             success = parse_file(filename)
