@@ -68,11 +68,12 @@ symbols {
             txt.print_uwhex(sys.progend(), true)
             txt.nl()
             sys.exit(1)
-        } else {
-            txt.print("\ndebug: progend=")
-            txt.print_uwhex(sys.progend(), true)
-            txt.nl()
         }
+;        else {
+;            txt.print("\ndebug: progend=")
+;            txt.print_uwhex(sys.progend(), true)
+;            txt.nl()
+;        }
     }
 
     ; SUBROUTINE: numsymbols

@@ -13,9 +13,10 @@ main {
     ubyte drivenumber = 8
     ubyte text_color = 1
     ubyte background_color = 11
+    const ubyte max_filename_length = 30
 
     sub start() {
-        str commandline = "?" * 20
+        str commandline = "?" * max_filename_length
         print_intro()
         diskio.filename[0] = 0
         repeat {
@@ -46,6 +47,16 @@ main {
                         print_intro()
                     }
                     'a' -> {
+                        if not argptr {
+                            if not previous_successful_filename[0] {
+                                err.print("no previous file")
+                            } else {
+                                txt.print("using previous file: ")
+                                txt.print(previous_successful_filename)
+                                txt.nl()
+                                argptr = previous_successful_filename
+                            }
+                        }
                         if argptr {
                             symbols.init()
                             filereader.init()
@@ -81,7 +92,7 @@ main {
                         if diskio.filename[0]
                             run_file(diskio.filename)
                         else
-                            err.print("no previous filename")
+                            err.print("no previous file")
                     }
                     '?', 'h' -> print_intro()
                     'q', 'x' -> return
@@ -104,14 +115,14 @@ main {
         txt.color(text_color)
         txt.print("Available commands:\n\n" +
         "  $            - lists *.asm files on disk\n" +
-        "  a <filename> - assemble file\n" +
+        "  a <filename> - assemble file (no argument = assemble previous file)\n" +
         "  d <filename> - display contents of file\n" +
         "  e <filename> - start x16edit in rom bank 7 on file\n")
         txt.print("  r <filename> - load and run file, use previously saved file if unspecified\n" +
-        "  # <number>   - select disk device number (8 or 9, default=8)\n" +
-        "  t            - cycle text color\n" +
-        "  b            - cycle background color\n")
-        txt.print("  ? or h       - print this help.\n" +
+        "  # <number>   - select disk device number (8 or 9, default=8)\n")
+        txt.print("  t            - cycle text color\n" +
+        "  b            - cycle background color\n"+
+        "  ? or h       - print this help.\n" +
         "  q or x       - quit to basic.\n")
     }
 
@@ -245,6 +256,7 @@ main {
         cx16.rombank(4)     ; switch back to basic rom
     }
 
+    str previous_successful_filename = "\x00" * max_filename_length
     uword time_load
     uword time_phase1
     uword time_phase2
@@ -277,6 +289,7 @@ main {
         time_phase2 = c64.RDTIM16()
 
         if success {
+            string.copy(filename, previous_successful_filename)
             print_summary(cx16.r15, output.pc_min, output.pc_max)
             save_program(output.pc_min, output.pc_max)
             txt.nl()
@@ -349,13 +362,15 @@ main {
         txt.print_uw(end_address-start_address)
         txt.print(" bytes)\n source lines: ")
         txt.print_uw(lines)
-        txt.print("\n    load time: ")
-        txt.print_uw(time_load)
-        txt.print(" jf.\n phase 1 time: ")
-        txt.print_uw(time_phase1-time_load)
-        txt.print(" jf.\n phase 2 time: ")
-        txt.print_uw(time_phase2-time_phase1)
-        txt.print(" jf.\n   total time: ")
+        txt.nl()
+;        txt.print("    load time: ")
+;        txt.print_uw(time_load)
+;        txt.print(" jf.\n phase 1 time: ")
+;        txt.print_uw(time_phase1-time_load)
+;        txt.print(" jf.\n phase 2 time: ")
+;        txt.print_uw(time_phase2-time_phase1)
+;        txt.print(" jf.\n")
+        txt.print("   total time: ")
         txt.print_uw(time_phase2)
         txt.print(" jf = ")
         time_phase2 /= 6
