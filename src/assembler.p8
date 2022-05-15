@@ -18,6 +18,7 @@ main {
     sub start() {
         str commandline = "?" * max_filename_length
         print_intro()
+        previous_successful_filename[0] = 0
         diskio.filename[0] = 0
         repeat {
             if background_color==13
@@ -46,24 +47,9 @@ main {
                             edit_file(0)
                         print_intro()
                     }
-                    'a' -> {
-                        if not argptr {
-                            if not previous_successful_filename[0] {
-                                err.print("no previous file")
-                            } else {
-                                txt.print("using previous file: ")
-                                txt.print(previous_successful_filename)
-                                txt.nl()
-                                argptr = previous_successful_filename
-                            }
-                        }
-                        if argptr {
-                            symbols.init()
-                            filereader.init()
-                            diskio.filename[0] = 0
-                            assemble_file(argptr)
-                        }
-                    }
+                    'a' -> void cli_command_a(argptr, true)
+                    'r' -> void cli_command_r(argptr)
+                    'x' -> void cli_command_x(argptr)
                     '#' -> {
                         if argptr {
                             set_drivenumber(argptr[0]-'0')
@@ -78,6 +64,7 @@ main {
                         if text_color==background_color
                             text_color++
                         text_color &= 15
+                        print_intro()
                     }
                     'b' -> {
                         background_color++
@@ -86,19 +73,51 @@ main {
                         background_color &= 15
                         print_intro()
                     }
-                    'r' -> {
-                        if argptr
-                            void string.copy(argptr, diskio.filename)
-                        if diskio.filename[0]
-                            run_file(diskio.filename)
-                        else
-                            err.print("no previous file")
-                    }
                     '?', 'h' -> print_intro()
-                    'q', 'x' -> return
+                    'q' -> return
                     else -> err.print("invalid command")
                 }
             }
+        }
+    }
+
+    sub cli_command_a(uword argptr, ubyte ask_for_output_filename) -> ubyte {
+        if not argptr {
+            if not previous_successful_filename[0] {
+                err.print("no previous file")
+            } else {
+                txt.print("using previous file: ")
+                txt.print(previous_successful_filename)
+                txt.nl()
+                argptr = previous_successful_filename
+            }
+        }
+        if argptr {
+            symbols.init()
+            filereader.init()
+            diskio.filename[0] = 0
+            assemble_file(argptr, ask_for_output_filename)
+            return true
+        }
+        return false
+    }
+
+    sub cli_command_r(uword argptr) -> ubyte {
+        if argptr
+            void string.copy(argptr, diskio.filename)
+        if diskio.filename[0] {
+            run_file(diskio.filename)
+            return true
+        }
+        else {
+            err.print("no previous file")
+            return false
+        }
+    }
+
+    sub cli_command_x(uword argptr) {
+        if cli_command_a(argptr, false) {
+            void cli_command_r(0)
         }
     }
 
@@ -119,20 +138,20 @@ main {
         "  d <filename> - display contents of file\n" +
         "  e <filename> - start x16edit in rom bank 7 on file\n")
         txt.print("  r <filename> - load and run file, use previously saved file if unspecified\n" +
+        "  x <filename> - combination of a+r (assemble, save, execute)\n" +
         "  # <number>   - select disk device number (8 or 9, default=8)\n")
         txt.print("  t            - cycle text color\n" +
         "  b            - cycle background color\n"+
-        "  ? or h       - print this help.\n" +
-        "  q or x       - quit to basic.\n")
+        "  ? or h       - print this help\n" +
+        "  q            - quit\n")
     }
 
     sub run_file(str filename) {
-        ; TODO check if program would overwrite the assembler if loaded.
-        ;      but we currently only have the progend() which includes all bss allocated memory...
         if diskio.f_open(drivenumber, filename) {
             uword load_address
             void diskio.f_read(&load_address, 2)
             diskio.f_close()
+            ; TODO check if program would overwrite the assembler if loaded? but we currently only have the progend() which includes all 'bss' allocated memory...
             c64.SETMSG(%10000000)       ; enable kernal status messages for load
             cx16.r1 = diskio.load(drivenumber, filename, 0)
             c64.SETMSG(0)
@@ -256,13 +275,12 @@ main {
         cx16.rombank(4)     ; switch back to basic rom
     }
 
-    str previous_successful_filename = "\x00" * max_filename_length
+    str previous_successful_filename = "?" * max_filename_length
     uword time_load
     uword time_phase1
     uword time_phase2
 
-    sub assemble_file(uword filename) {
-
+    sub assemble_file(uword filename, ubyte ask_for_output_filename) {
         txt.print("\x12assembling ")
         txt.print(filename)
         txt.print("\x92\n")
@@ -289,9 +307,9 @@ main {
         time_phase2 = c64.RDTIM16()
 
         if success {
-            string.copy(filename, previous_successful_filename)
+            void string.copy(filename, previous_successful_filename)
             print_summary(cx16.r15, output.pc_min, output.pc_max)
-            save_program(output.pc_min, output.pc_max)
+            save_program(output.pc_min, output.pc_max, ask_for_output_filename)
             txt.nl()
         }
 
@@ -382,51 +400,71 @@ main {
         txt.print(" seconds.\n")
     }
 
-    sub save_program(uword start_address, uword end_address) {
-
-        txt.print("\nenter filename to save as (without .prg) > ")
-        if txt.input_chars(main.start.commandline) {
+    sub save_program(uword start_address, uword end_address, ubyte ask_for_output_filename) {
+        str output_filename = "?" * max_filename_length
+        if ask_for_output_filename {
+            txt.print("\nenter filename to save as (without .prg) > ")
+            if not txt.input_chars(main.start.commandline)
+                return
             if fileregistry.search(main.start.commandline)!=$ff {
                 err.print("name is same as one of the source files")
                 return
             }
-            txt.print("\nsaving...")
-            diskio.delete(drivenumber, main.start.commandline)
+            output_filename = main.start.commandline
+        } else {
+            ; choose automatic output filename based on the source file name
+            string.right(previous_successful_filename, 4, output_filename)
+            void string.lower(output_filename)
+            if output_filename==".asm" or output_filename==".txt" or output_filename==".src" {
+                output_filename = previous_successful_filename
+                output_filename[string.length(output_filename) - 4] = 0  ; strip off the existing suffix
+            } else {
+                output_filename = previous_successful_filename
+                void string.copy(".prg", &output_filename + string.length(output_filename))  ; just add .prg suffix to not overwrite
+            }
+        }
+        txt.print("\nsaving...")
+        if not ask_for_output_filename {
+            txt.print(output_filename)
+            txt.spc()
+        }
+        
+        diskio.delete(drivenumber, output_filename)
 
-            if diskio.f_open_w(drivenumber, main.start.commandline) {
-                ubyte[2] prgheader
-                prgheader[0] = lsb(start_address)
-                prgheader[1] = msb(start_address)
-                if not diskio.f_write(&prgheader, len(prgheader))
+        if diskio.f_open_w(drivenumber, output_filename) {
+            ubyte[2] prgheader
+            prgheader[0] = lsb(start_address)
+            prgheader[1] = msb(start_address)
+            if not diskio.f_write(&prgheader, len(prgheader))
+                goto io_error
+
+            uword remaining = end_address-start_address
+            ubyte bnk
+            for bnk in output.start_output_bank to output.next_output_bank-1 {
+                cx16.rambank(bnk)
+                uword savesize = remaining
+                if savesize > 8192
+                    savesize = 8192
+                if not diskio.f_write($a000, savesize)
                     goto io_error
-
-                uword remaining = end_address-start_address
-                ubyte bnk
-                for bnk in output.start_output_bank to output.next_output_bank-1 {
-                    cx16.rambank(bnk)
-                    uword savesize = remaining
-                    if savesize > 8192
-                        savesize = 8192
-                    if not diskio.f_write($a000, savesize)
-                        goto io_error
-                    remaining -= savesize
-                    if remaining==0
-                        break
-                    ; note: we cannot print characters to the screen here (without switching i/o channels)
-                }
-
-                diskio.f_close_w()
-                diskio.filename = main.start.commandline      ; keep the filename we just saved to
-                return
+                remaining -= savesize
+                if remaining==0
+                    break
+                ; note: we cannot print characters to the screen here (without switching i/o channels)
             }
 
-io_error:
-            err.print(diskio.status(drivenumber))
-
-;            if not diskio.save(drivenumber, main.start.filename, start_address, end_address-start_address) {
-;                err.print(diskio.status(drivenumber))
-;            }
+            diskio.f_close_w()
+            diskio.filename = output_filename   ; keep the filename we just saved to
+            return
         }
+
+io_error:
+        err.print(diskio.status(drivenumber))
+
+;        if not diskio.save(drivenumber, main.start.filename, start_address, end_address-start_address) {
+;            err.print(diskio.status(drivenumber))
+;        }
+
     }
 }
 
@@ -1098,7 +1136,6 @@ _is_2_entry
                 else -> return cx16.r0
             }
         }
-        return 0
     }
 
     sub split_input() {

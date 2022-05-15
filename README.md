@@ -28,6 +28,13 @@ After successfully assembling a source file, a summary will be printed.
 You can then enter the filename to save the program as on disk (will overwrite existing file with the same name!).
 It's always saved in PRG format, so you can load the program again with ``LOAD "NAME",8,1``
 
+Note: when your program is in the same memory as the assembler itself, it will obviously overwrite the assembler
+when you load it to be executed. The assembler won't be usable again after this.
+So for quick edit-assemble-save-run cycles, make sure your program loads outside the assembler program memory area!
+*For now, a lower start address of $5000 is safe. This may change once the assembler grows in size due to new features.*
+*Pay attention to the end address printed when you load the assembler to see where its memory ends.*
+
+
 ## Features
 
 - reads source files (any size) from disk  (sdcard)
@@ -61,8 +68,6 @@ It's always saved in PRG format, so you can load the program again with ``LOAD "
 
 ## Todo
 
-- 'a+r' command to assemble and immediately run the resulting program (auto select save filename?)
- 
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 
 - relative labels (+/++/-/--)
