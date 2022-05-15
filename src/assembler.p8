@@ -371,6 +371,10 @@ main {
 
         txt.print("\nenter filename to save as (without .prg) > ")
         if txt.input_chars(main.start.commandline) {
+            if fileregistry.search(main.start.commandline)!=$ff {
+                err.print("name is same as one of the source files")
+                return
+            }
             txt.print("\nsaving...")
             diskio.delete(drivenumber, main.start.commandline)
 
