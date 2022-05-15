@@ -76,6 +76,9 @@ the expected result binary (crossassembled by 64tass).
 
 - relative labels (+/++/-/--)
 
+- allow alternate syntax (64tass) for BBR, BBS, RMB, SMB: instead of requiring BBR0 xxxx allow BBR 0,xxxxx as well. 
+  do this by simply preprocessing the line, don't change the prefix tree. 
+
 - localy scoped labels, or at least a new scope for included assembly files to avoid name clashes
 
 - macros?
