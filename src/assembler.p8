@@ -74,6 +74,7 @@ main {
                         print_intro()
                     }
                     '?', 'h' -> print_intro()
+                    '=' -> self_test()
                     'q' -> return
                     else -> err.print("invalid command")
                 }
@@ -143,7 +144,47 @@ main {
         txt.print("  t            - cycle text color\n" +
         "  b            - cycle background color\n"+
         "  ? or h       - print this help\n" +
+        "  =            - self-test\n" +
         "  q            - quit\n")
+    }
+
+    sub self_test() {
+        if(cli_command_a("test-allopcodes.asm", false)) {
+            cx16.r0L = false
+            if output.pc_min == $6000 {
+                if output.pc_max == $61e2 {
+                    c64.SETMSG(%10000000)       ; enable kernal status messages for load
+                    if diskio.load(drivenumber, "test-allopcodes", $6000) {
+                        cx16.r0L = true
+                        if diskio.load(drivenumber, "test-allopcodes-check", $6200) {
+                            for cx16.r1 in $0000 to $01e1 {
+                                if @($6000+cx16.r1) != @($6200+cx16.r1) {
+                                    txt.print("error: byte ")
+                                    txt.print_uwhex(cx16.r1, true)
+                                    txt.print(" is wrong, actual ")
+                                    txt.print_ubhex(@($6000+cx16.r1), true)
+                                    txt.print(" expected ")
+                                    txt.print_ubhex(@($6200+cx16.r1), true)
+                                    txt.nl()
+                                    cx16.r0L = false
+                                }
+                            }
+                        }
+                    }
+                    c64.SETMSG(0)
+                    diskio.delete(drivenumber, "test-allopcodes")
+                }
+                else
+                    err.print("end should be $61e2")
+            } else
+                err.print("start should be $6000")
+
+            txt.print("\n\x12self-test ")
+            if cx16.r0L
+                txt.print("ok\x92\n")
+            else
+                txt.print("failed!!!\x92\n")
+        }
     }
 
     sub run_file(str filename) {
@@ -381,7 +422,9 @@ main {
         txt.print(" bytes)\n source lines: ")
         txt.print_uw(lines)
         txt.nl()
-;        txt.print("    load time: ")
+;        txt.print("\n symbol count: ")
+;        txt.print_uw(symbols.numsymbols())
+;        txt.print("\n    load time: ")
 ;        txt.print_uw(time_load)
 ;        txt.print(" jf.\n phase 1 time: ")
 ;        txt.print_uw(time_phase1-time_load)

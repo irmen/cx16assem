@@ -41,7 +41,7 @@ symbols {
     const ubyte max_name_len = 31               ; excluding the terminating 0.
     const ubyte num_buckets = 128               ; pretty much fixed because of the chosen hash algorithm
     const ubyte max_entries_per_bucket = 16     ; can be adjusted if bucket full errors occur too often
-    const uword entrybuffer_size = $4000        ; can be as large as free ram allows (which runs up to $9f00)
+    const uword entrybuffer_size = $3f00        ; can be as large as free ram allows (which runs up to $9f00)
     ubyte[num_buckets] bucket_entry_counts
     uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2, 0)
     uword num_entries

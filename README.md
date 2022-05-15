@@ -34,6 +34,10 @@ So for quick edit-assemble-save-run cycles, make sure your program loads outside
 *For now, a lower start address of $5000 is safe. This may change once the assembler grows in size due to new features.*
 *Pay attention to the end address printed when you load the assembler to see where its memory ends.*
 
+The built-in self test requires the two "test-allopcodes" files from the test directory here, to be copied onto the sdcard of the x16.
+The .asm file contains 65c02 source code with all possible valid instructions (opcodes 0-255) and the check file contains 
+the expected result binary (crossassembled by 64tass).
+
 
 ## Features
 
