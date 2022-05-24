@@ -137,7 +137,7 @@ main {
         "  $            - lists *.asm files on disk\n" +
         "  a <filename> - assemble file (no argument = assemble previous file)\n" +
         "  d <filename> - display contents of file\n" +
-        "  e <filename> - start x16edit in rom bank 7 on file\n")
+        "  e <filename> - start x16edit to edit the file\n")
         txt.print("  r <filename> - load and run file, use previously saved file if unspecified\n" +
         "  x <filename> - combination of a+r (assemble, save, execute)\n" +
         "  # <number>   - select disk device number (8 or 9, default=8)\n")
@@ -231,39 +231,59 @@ main {
                 break   ; found the x16edit rom tag
         }
         if not x16edit_bank {
-            err.print("no x16edit in rom")
-            sys.wait(120)
+            if diskio.load(drivenumber, "x16edit-6000", 0) {
+                launch_x16edit($6006)
+            } else {
+                err.print("no x16edit in rom and no x16edit-6000.prg on disk")
+                sys.wait(120)
+            }
             return
         }
-        cx16.rombank(x16edit_bank)
 
-        cx16.r1H = %00000001        ; enable auto-indent
-        cx16.r2L = 4
-        cx16.r2H = 80
-        cx16.r3L = drivenumber
-        cx16.r3H = background_color<<4 | text_color
-        cx16.r4 = 0                 ; choose default colors for status bar and headers
-        if filename {
-            cx16.r0 = filename
-            cx16.r1L = string.length(filename)
-            %asm {{
-                phx
-                ldx  #1
-                ldy  #255
-                jsr  $c006
-                plx
-            }}
-        } else {
-            cx16.r1L = 0
-            %asm {{
-                phx
-                ldx  #1
-                ldy  #255
-                jsr  $c006
-                plx
-            }}
-        }
+        ; launch the rom based editor
+        cx16.rombank(x16edit_bank)
+        launch_x16edit($c006)
         cx16.rombank(4)
+        return
+
+        sub launch_x16edit(uword entrypoint) {
+            cx16.r1H = %00000001        ; enable auto-indent
+            cx16.r2L = 4
+            cx16.r2H = 80
+            cx16.r3L = drivenumber
+            cx16.r3H = background_color<<4 | text_color
+            cx16.r4 = 0                 ; choose default colors for status bar and headers
+            if filename {
+                cx16.r0 = filename
+                cx16.r1L = string.length(filename)
+                %asm {{
+                    phx
+                    ldx  #1
+                    ldy  #255
+                    lda  #>_return
+                    pha
+                    lda  #<_return
+                    pha
+                    jmp  (entrypoint)
+_return:            nop
+                    plx
+                }}
+            } else {
+                cx16.r1L = 0
+                %asm {{
+                    phx
+                    ldx  #1
+                    ldy  #255
+                    lda  #>_return
+                    pha
+                    lda  #<_return
+                    pha
+                    jmp  (entrypoint)
+_return:            nop
+                    plx
+                }}
+            }
+        }
     }
 
     sub list_asm_files() {
