@@ -72,8 +72,6 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- FIX: add support for .strz
-
 - FIX multiple error messages when error occurs in included file 
  
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)

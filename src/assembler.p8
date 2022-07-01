@@ -990,7 +990,9 @@ _yes        lda  #1
             else if string.compare(directive, ".word")==0
                 return proces_directive_word(operand)
             else if string.compare(directive, ".str")==0
-                return proces_directive_str(operand)
+                return proces_directive_str(operand, false)
+            else if string.compare(directive, ".strz")==0
+                return proces_directive_str(operand, true)
             else if string.compare(directive, ".include")==0
                 return process_directive_include(operand, false)
             else if string.compare(directive, ".incbin")==0
@@ -1069,14 +1071,17 @@ _yes        lda  #1
         return false
     }
 
-    sub proces_directive_str(uword operand) -> ubyte {
+    sub proces_directive_str(uword operand, ubyte zeroterminated) -> ubyte {
         if operand[0]=='\"' {
             operand++
             ubyte char_idx=0
             repeat {
                 ubyte char = @(operand+char_idx)
                 when char {
-                    0 -> return true
+                    0 -> {
+                        terminate()
+                        return true
+                    }
                     '\"' -> {
                         operand++
                         while @(operand+char_idx)==' '
@@ -1085,6 +1090,7 @@ _yes        lda  #1
                             err.print("garbage after string")
                             return false
                         }
+                        terminate()
                         return true
                     }
                     else -> {
@@ -1100,6 +1106,15 @@ _yes        lda  #1
 
         err.print("syntax error")
         return false
+
+        sub terminate() {
+            if zeroterminated {
+                if phase==2
+                    output.emit(0)
+                else
+                    output.inc_pc(0)
+            }
+        }
     }
 
     sub process_directive_include(uword operand, ubyte is_incbin) -> ubyte {
