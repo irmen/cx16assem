@@ -49,7 +49,7 @@ the expected result binary (crossassembled by 64tass).
 - numbers can be written in decimal ``12345``, hex ``$abcd``, binary ``%1010011``
 - symbolic labels
 - use ``<value`` and ``>value`` to get the lsb and msb of a value respectively
-- define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff`` and ``.str  "hello!"``
+- define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff``, ``.str  "hello!"`` and ``.strz  "zeroterminatedstring"``
 - include binary data from a file using ``.incbin "filename"``
 - include source code from a file using ``.include "filename"``
 - disk device 8 and 9 selectable
@@ -72,6 +72,10 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
+- FIX: add support for .strz
+
+- FIX multiple error messages when error occurs in included file 
+ 
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 
 - relative labels (+/++/-/--)

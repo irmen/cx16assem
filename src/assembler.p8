@@ -1076,7 +1076,17 @@ _yes        lda  #1
             repeat {
                 ubyte char = @(operand+char_idx)
                 when char {
-                    '\"', 0 -> return true
+                    0 -> return true
+                    '\"' -> {
+                        operand++
+                        while @(operand+char_idx)==' '
+                            char_idx++
+                        if @(operand+char_idx) and @(operand+char_idx)!=';' {
+                            err.print("garbage after string")
+                            return false
+                        }
+                        return true
+                    }
                     else -> {
                         if phase==2
                             output.emit(char)
