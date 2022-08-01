@@ -41,7 +41,7 @@ symbols {
     const ubyte max_name_len = 31               ; excluding the terminating 0.
     const ubyte num_buckets = 128               ; pretty much fixed because of the chosen hash algorithm
     const ubyte max_entries_per_bucket = 16     ; can be adjusted if bucket full errors occur too often
-    const uword entrybuffer_size = $3e00        ; can be as large as free ram allows (which runs up to $9f00)
+    const uword entrybuffer_size = $3e00        ; can be almost as large as free ram allows (which runs up to $9f00)
     ubyte[num_buckets] bucket_entry_counts
     uword bucket_entry_pointers = memory("entrypointers", num_buckets*max_entries_per_bucket*2, 0)
     uword num_entries
@@ -62,6 +62,10 @@ symbols {
         entrybufferptr = entrybuffer
         sys.memset(&bucket_entry_counts, num_buckets, 0)
         num_entries = 0
+
+;        txt.print("progend=")
+;        txt.print_uwhex(sys.progend(), true)
+;        txt.nl()
 
         if sys.progend() >= $9f00-max_name_len*2 {
             txt.print("\n\nerror: symbol table size exceeds free system ram: ")

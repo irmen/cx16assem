@@ -19,7 +19,7 @@ main {
         str commandline = "?" * max_filename_length
         print_intro()
         previous_successful_filename[0] = 0
-        diskio.filename[0] = 0
+        diskio.list_filename[0] = 0
         repeat {
             if background_color==13
                 txt.color(0)
@@ -96,7 +96,7 @@ main {
         if argptr {
             symbols.init()
             filereader.init()
-            diskio.filename[0] = 0
+            diskio.list_filename[0] = 0
             assemble_file(argptr, ask_for_output_filename)
             return true
         }
@@ -105,9 +105,9 @@ main {
 
     sub cli_command_r(uword argptr) -> ubyte {
         if argptr
-            void string.copy(argptr, diskio.filename)
-        if diskio.filename[0] {
-            run_file(diskio.filename)
+            void string.copy(argptr, diskio.list_filename)
+        if diskio.list_filename[0] {
+            run_file(diskio.list_filename)
             return true
         }
         else {
@@ -517,7 +517,7 @@ _return:            nop
             }
 
             diskio.f_close_w()
-            diskio.filename = output_filename   ; keep the filename we just saved to
+            diskio.list_filename = output_filename   ; keep the filename we just saved to
             return
         }
 
