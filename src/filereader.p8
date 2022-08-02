@@ -21,7 +21,7 @@ filereader {
         file_stack_ptr = 255
     }
 
-    sub read_file(ubyte drivenumber, uword filename) -> ubyte {
+    sub read_file(ubyte drivenumber, uword filename) -> bool {
         ubyte start_bank = fileregistry.get_load_bank()
         uword address = fileregistry.get_load_address()
         txt.print("loading ")
@@ -61,7 +61,7 @@ filereader {
     }
 
     ; returns true if the file's lines can be accessed via next_line(), false otherwise
-    sub start_get_lines(str filename) -> ubyte {
+    sub start_get_lines(str filename) -> bool {
         ubyte index = fileregistry.search(filename)
         if index==$ff
             return false
@@ -74,9 +74,9 @@ filereader {
         return true
     }
 
-    ubyte lines_exhausted
+    bool lines_exhausted
 
-    sub next_line(uword buffer) -> ubyte {
+    sub next_line(uword buffer) -> bool {
         ; copies the next line from line_ptr into buffer
         ; stops at 0 (EOF), or 10/13 (EOL).
         ; returns true if success, false if no line was copied (EOF).
@@ -137,7 +137,7 @@ _return     ; remember the line pointer for next call
     }
 
     ; returns true if the file's bytes can be accessed via next_byte(), false otherwise
-    sub start_get_bytes(str filename) -> ubyte {
+    sub start_get_bytes(str filename) -> bool {
         if start_get_lines(filename) {
             incbin_bank = line_banks[file_stack_ptr]
             incbin_addr = line_ptrs[file_stack_ptr]
@@ -230,7 +230,7 @@ fileregistry {
     }
 
     ; registers a file in the database, return true on success or false otherwise
-    sub add(str filename, uword size, ubyte last_bank) -> ubyte {
+    sub add(str filename, uword size, ubyte last_bank) -> bool {
         if num_files >= max_num_files {
             err.print("too many files")
             return false

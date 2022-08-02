@@ -94,7 +94,7 @@ symbols {
     ;       value = byte or word value for this symbol,
     ;       datatype = one of the datatype constants for this value.
     ; RETURNS: success boolean.
-    sub setvalue(uword symbol, uword value, ubyte datatype) -> ubyte {
+    sub setvalue(uword symbol, uword value, ubyte datatype) -> bool {
         ubyte hash = ht_calc_hash(symbol)
         if_cs {
             err.print("hash error name too long")
@@ -126,7 +126,7 @@ symbols {
     ;       value = byte or word value for this symbol,
     ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
-    sub setvalue_new(uword symbol, uword value, ubyte datatype) -> ubyte {
+    sub setvalue_new(uword symbol, uword value, ubyte datatype) -> bool {
         ubyte hash = ht_calc_hash(symbol)
         if_cs {
             err.print("hash error name too long")
@@ -142,10 +142,10 @@ symbols {
     ;       value = byte or word value for this symbol,
     ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
-    sub setvalue2(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
+    sub setvalue2(uword symbol, ubyte length, uword value, ubyte datatype) -> bool {
         ubyte tc = @(symbol+length)
         @(symbol+length) = 0
-        ubyte result = setvalue(symbol, value, datatype)
+        bool result = setvalue(symbol, value, datatype)
         @(symbol+length) = tc
         return result
     }
@@ -157,10 +157,10 @@ symbols {
     ;       value = byte or word value for this symbol,
     ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
-    sub setvalue2_new(uword symbol, ubyte length, uword value, ubyte datatype) -> ubyte {
+    sub setvalue2_new(uword symbol, ubyte length, uword value, ubyte datatype) -> bool {
         ubyte tc = @(symbol+length)
         @(symbol+length) = 0
-        ubyte result = setvalue_new(symbol, value, datatype)
+        bool result = setvalue_new(symbol, value, datatype)
         @(symbol+length) = tc
         return result
     }
@@ -170,7 +170,7 @@ symbols {
     ; ARGS: symbol = address of the symbol name (0-terminated string)
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
-    sub getvalue(uword symbol) -> ubyte {
+    sub getvalue(uword symbol) -> bool {
         ubyte hash = ht_calc_hash(symbol)
         if_cs {
             err.print("hash error name too long")
@@ -195,10 +195,10 @@ symbols {
     ; ARGS: symbol = address of the symbol name, length = length of the symbol name
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
-    sub getvalue2(uword symbol, ubyte length) -> ubyte {
+    sub getvalue2(uword symbol, ubyte length) -> bool {
         ubyte tc = @(symbol+length)
         @(symbol+length) = 0
-        ubyte result = getvalue(symbol)
+        bool result = getvalue(symbol)
         @(symbol+length) = tc
         return result
     }
@@ -262,7 +262,7 @@ symbols {
         }
     }
 
-    sub ht_add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> ubyte {
+    sub ht_add_entry(ubyte hash, uword symbol, uword value, ubyte datatype) -> bool {
         ; NOTE: this routine assumes the symbol DOES NOT EXIST in the table yet!
         ubyte bucketcount = bucket_entry_counts[hash]
         if bucketcount >= max_entries_per_bucket {

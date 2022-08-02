@@ -82,7 +82,7 @@ main {
         }
     }
 
-    sub cli_command_a(uword argptr, ubyte ask_for_output_filename) -> ubyte {
+    sub cli_command_a(uword argptr, bool ask_for_output_filename) -> bool {
         if not argptr {
             if not previous_successful_filename[0] {
                 err.print("no previous file")
@@ -103,7 +103,7 @@ main {
         return false
     }
 
-    sub cli_command_r(uword argptr) -> ubyte {
+    sub cli_command_r(uword argptr) -> bool {
         if argptr
             void string.copy(argptr, diskio.list_filename)
         if diskio.list_filename[0] {
@@ -341,14 +341,14 @@ _return:            nop
     uword time_phase1
     uword time_phase2
 
-    sub assemble_file(uword filename, ubyte ask_for_output_filename) {
+    sub assemble_file(uword filename, bool ask_for_output_filename) {
         txt.print("\x12assembling ")
         txt.print(filename)
         txt.print("\x92\n")
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
         c64.SETTIM(0,0,0)
         parser.start_phase(1)
-        ubyte success = parse_file(filename)
+        bool success = parse_file(filename)
 
         if success {
             time_phase1 = c64.RDTIM16()
@@ -377,15 +377,15 @@ _return:            nop
         cx16.rombank(4)     ; switch back to basic rom
     }
 
-    sub parse_file(uword filename) -> ubyte {
+    sub parse_file(uword filename) -> bool {
         ; returns success status, and last processed line number in cx16.r15
         filereader.push_file()
-        ubyte success = internal_parse_file(filename)
+        bool success = internal_parse_file(filename)
         filereader.pop_file()
         return success
     }
 
-    sub internal_parse_file(uword filename) -> ubyte {
+    sub internal_parse_file(uword filename) -> bool {
         ; returns success status, and last processed line number in cx16.r15
 
         if parser.phase==1 {
@@ -463,7 +463,7 @@ _return:            nop
         txt.print(" seconds.\n")
     }
 
-    sub save_program(uword start_address, uword end_address, ubyte ask_for_output_filename) {
+    sub save_program(uword start_address, uword end_address, bool ask_for_output_filename) {
         str output_filename = "?" * max_filename_length
         if ask_for_output_filename {
             txt.print("\nenter filename to save as (without .prg) > ")
@@ -550,7 +550,7 @@ parser {
         output.init(ph)
     }
 
-    sub process_line() -> ubyte {
+    sub process_line() -> bool {
         preprocess_assignment_spacing()
         split_input()
 
@@ -567,7 +567,7 @@ parser {
         output.done()
     }
 
-    sub do_assign() -> ubyte {
+    sub do_assign() -> bool {
         ; target is in word_addrs[0], value is in word_addrs[2]   ('=' is in word_addrs[1])
         if not word_addrs[2] {
             err.print("syntax error")
@@ -577,7 +577,7 @@ parser {
         ;void string.lower(word_addrs[0])
         ;void string.lower(word_addrs[2])
 
-        ubyte valid_operand=false
+        bool valid_operand=false
         if @(word_addrs[2])=='*' {
             cx16.r15 = output.program_counter
             valid_operand = true
@@ -603,11 +603,11 @@ parser {
         return false
     }
 
-    sub do_label_instr() -> ubyte {
+    sub do_label_instr() -> bool {
         uword @zp label_ptr = 0
         uword @zp instr_ptr = 0
         uword @zp operand_ptr = 0
-        ubyte starts_with_whitespace = input_line[0] in [' ', 9, 160]
+        bool starts_with_whitespace = input_line[0] in [' ', 9, 160]
 
 ;        void string.lower(word_addrs[0])
 ;        void string.lower(word_addrs[1])
@@ -652,7 +652,7 @@ parser {
         return true     ; empty line
     }
 
-    sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> ubyte {
+    sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> bool {
         uword @zp instruction_info_ptr = instructions.match(instr_ptr)
         if instruction_info_ptr {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
@@ -665,7 +665,7 @@ parser {
                     ; that needs its "absolute" operand recalculated as relative.
                     ; another possibility is lda $00ff,y which is initially parsed as lda zp,y -
                     ; but that does not exist - and should become lda abs,y
-                    ubyte retry = false
+                    bool retry = false
                     when addr_mode {
                         instructions.am_Abs -> {
                             if @(instr_ptr)=='b' {
@@ -752,7 +752,7 @@ parser {
         return false
     }
 
-    sub calc_relative_branch_into_r14() -> ubyte {
+    sub calc_relative_branch_into_r14() -> bool {
         cx16.r14 = cx16.r15 - output.program_counter - 2
         if msb(cx16.r14)  {
             if cx16.r14 < $ff80 {
@@ -981,7 +981,7 @@ _yes        lda  #1
         }}
     }
 
-    sub process_assembler_directive(uword directive, uword operand) -> ubyte {
+    sub process_assembler_directive(uword directive, uword operand) -> bool {
         ; we recognise .byte, .word and .str right now
         ; void string.lower(directive)
         if operand {
@@ -1003,7 +1003,7 @@ _yes        lda  #1
         return false
     }
 
-    sub proces_directive_byte(uword operand) -> ubyte {
+    sub proces_directive_byte(uword operand) -> bool {
         ubyte length = conv.any2uword(operand)
         if length {
             if msb(cx16.r15) {
@@ -1039,7 +1039,7 @@ _yes        lda  #1
         return false
     }
 
-    sub proces_directive_word(uword operand) -> ubyte {
+    sub proces_directive_word(uword operand) -> bool {
         ubyte length = conv.any2uword(operand)
         if length {
             if phase==2 {
@@ -1071,7 +1071,7 @@ _yes        lda  #1
         return false
     }
 
-    sub proces_directive_str(uword operand, ubyte zeroterminated) -> ubyte {
+    sub proces_directive_str(uword operand, ubyte zeroterminated) -> bool {
         if operand[0]=='\"' {
             operand++
             ubyte char_idx=0
@@ -1117,7 +1117,7 @@ _yes        lda  #1
         }
     }
 
-    sub process_directive_include(uword operand, ubyte is_incbin) -> ubyte {
+    sub process_directive_include(uword operand, ubyte is_incbin) -> bool {
         if operand[0]=='\"'
             operand++
         uword filename = operand
@@ -1254,7 +1254,7 @@ _is_2_entry
             }
         }
 
-        ubyte copying_word = false
+        bool copying_word = false
         char_idx = 0
         ubyte @zp char
         repeat {
