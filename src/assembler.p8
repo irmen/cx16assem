@@ -642,10 +642,37 @@ parser {
                     return false
             }
         }
-        if instr_ptr
+        if instr_ptr {
+            if operand_ptr {
+                if @(instr_ptr+3)==0 {
+                    ; check for alternative syntax of BBR, BBS, RMB, SMB
+                    uword firsttwo = peekw(instr_ptr) & $7f7f
+                    ubyte third = @(instr_ptr+2) & $7f
+                    if firsttwo == $4242 {
+                        if third=='r' or third=='s'
+                            fixup_bbr_bbs_rmb_smb()     ; BBR/BBS
+                    }
+                    else if firsttwo == $4d52 {
+                        if third=='b'
+                            fixup_bbr_bbs_rmb_smb()     ; RMB
+                    }
+                    else if firsttwo == $4d53 {
+                        if third=='b'
+                            fixup_bbr_bbs_rmb_smb()     ; SMB
+                    }
+                }
+            }
             return assemble_instruction(instr_ptr, operand_ptr)
+        }
 
         return true     ; empty line
+
+        sub fixup_bbr_bbs_rmb_smb() {
+            ; rewrite syntax:  BBR  0,$xx,label   into:  BBR0  $xx,label
+            @(instr_ptr+3) = @(operand_ptr)
+            @(instr_ptr+4) = 0
+            operand_ptr += 2
+        }
     }
 
     sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> bool {
@@ -696,7 +723,7 @@ parser {
                         opcode = instructions.opcode(instruction_info_ptr, addr_mode)
 
                     if not opcode {
-                        err.print("invalid instruction")
+                        err.print("invalid instruction and/or operand")
                         return false
                     }
                 }
@@ -744,7 +771,7 @@ parser {
             err.print("invalid operand")
             return false
         }
-        err.print("invalid instruction")
+        err.print("invalid instruction and/or operand")
         return false
     }
 

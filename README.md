@@ -76,15 +76,13 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- allow alternate syntax (64tass) for BBR, BBS, RMB, SMB: instead of requiring BBR0 xxxx allow BBR 0,xxxx as well.
-  do this by simply preprocessing the line, don't change the mnemonic prefix tree.
-
-- simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
+- Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 
+  More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack) so may never be supported.
 
 - relative labels (+/++/-/--)
 
-- locally scoped labels, or at the very least a new scope for included assembly files to avoid name clashes
+- better error descriptions?
 
 - macros?
 
-- better error descriptions?
+- A *lot* of work, so may never be realized: locally scoped labels, or at the very least a new scope for included assembly files to avoid name clashes
