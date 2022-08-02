@@ -474,6 +474,7 @@ parser {
     str input_line = "?" * max_line_length
     uword[3] word_addrs
     ubyte phase             ; 1 = scan symbols, 2 = generate machine code
+    bool error_was_reported = false
 
     sub start_phase(ubyte ph) {
         phase = ph
@@ -512,21 +513,27 @@ parser {
 
         while filereader.next_line(parser.input_line) {
             if not parser.process_line() {
-                txt.print("\n\n\x12error.\x92\n last line #")
-                txt.print_uw(filereader.get_line_nr())
-                txt.print(": ")
-                txt.print(parser.word_addrs[0])
-                if parser.word_addrs[1] {
-                    txt.spc()
-                    txt.print(parser.word_addrs[1])
+                if not error_was_reported {
+                    txt.print("\n\x12error was in file: ")
+                    txt.print(filereader.current_file())
+                    txt.print("\x92\n line #")
+                    txt.print_uw(filereader.get_line_nr())
+                    txt.print(": ")
+                    txt.print(parser.word_addrs[0])
+                    if parser.word_addrs[1] {
+                        txt.spc()
+                        txt.print(parser.word_addrs[1])
+                    }
+                    if parser.word_addrs[2] {
+                        txt.spc()
+                        txt.print(parser.word_addrs[2])
+                    }
+                    txt.print("\n pc: ")
+                    txt.print_uwhex(output.program_counter, true)
+                    txt.nl()
+                } else {
+                    error_was_reported = true
                 }
-                if parser.word_addrs[2] {
-                    txt.spc()
-                    txt.print(parser.word_addrs[2])
-                }
-                txt.print("\n pc: ")
-                txt.print_uwhex(output.program_counter, true)
-                txt.nl()
                 return false
             }
         }

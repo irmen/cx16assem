@@ -38,6 +38,10 @@ filereader {
         return fileregistry.add(filename, cx16.r1, cx16.getrambank())
     }
 
+    sub current_file() -> uword {
+        return fileregistry.file_name_ptrs[file_stack_ptr]
+    }
+
     uword[fileregistry.max_num_files] line_ptrs
     ubyte[fileregistry.max_num_files] line_banks
     uword[fileregistry.max_num_files] end_ptrs
