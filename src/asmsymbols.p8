@@ -112,6 +112,15 @@ symbols {
                 }
                 else -> {
                     err.print("symbol already defined")
+                    txt.spc()
+                    txt.print(symbol)
+                    if @(existing_entry_ptr) == symbols_dt.dt_ubyte
+                        txt.print(" ubyte")
+                    else
+                        txt.print(" uword")
+                    txt.print(" value ")
+                    txt.print_uwhex(peekw(existing_entry_ptr+1), true)
+                    txt.nl()
                     return false
                 }
             }

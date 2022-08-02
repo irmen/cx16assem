@@ -48,6 +48,7 @@ the expected result binary (crossassembled by 64tass).
 - set program counter with ```* = $9000```
 - numbers can be written in decimal ``12345``, hex ``$abcd``, binary ``%1010011``
 - symbolic labels
+- symbol defines ('variables')
 - use ``<value`` and ``>value`` to get the lsb and msb of a value respectively
 - define data with ``.byte  1,2,3,4``, ``.word $a004,$ffff``, ``.str  "hello!"`` and ``.strz  "zeroterminatedstring"``
 - include binary data from a file using ``.incbin "filename"``
@@ -60,8 +61,11 @@ the expected result binary (crossassembled by 64tass).
 - for speed reasons, the source text is parsed in a case-sensitive way.
   Everything has to be in lowercase petscii, or it will be a syntax error. Except labels; they can contain upppercase petscii letters if you want.
 - likewise, for speed reasons, there's a line length limit of 160 characters that is not checked. Don't use source code lines that exceed this length or it will corrupt the program.
+- to keep the internals simpler, the assembler stops at first error it encounters.
+
 
 ## How it works internally
+- 
 - Files are read into the banked hiram $a000-$c000, starting from bank 1 (bank 0 is reserved)
 - Metadata about the files (name, address, size) is stored in tables in regular system ram.
 - Parsing is done on lines from the source files that are copied to a small buffer in system ram to be tokenized.
@@ -72,14 +76,14 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
+- allow alternate syntax (64tass) for BBR, BBS, RMB, SMB: instead of requiring BBR0 xxxx allow BBR 0,xxxx as well.
+  do this by simply preprocessing the line, don't change the mnemonic prefix tree.
+
 - simple expressions  (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication)
 
 - relative labels (+/++/-/--)
 
-- allow alternate syntax (64tass) for BBR, BBS, RMB, SMB: instead of requiring BBR0 xxxx allow BBR 0,xxxxx as well. 
-  do this by simply preprocessing the line, don't change the prefix tree. 
-
-- localy scoped labels, or at least a new scope for included assembly files to avoid name clashes
+- locally scoped labels, or at the very least a new scope for included assembly files to avoid name clashes
 
 - macros?
 
