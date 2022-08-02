@@ -337,7 +337,6 @@ _return:            nop
     }
 
     str previous_successful_filename = "?" * max_filename_length
-    uword time_load
     uword time_phase1
     uword time_phase2
 
@@ -348,7 +347,7 @@ _return:            nop
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
         c64.SETTIM(0,0,0)
         parser.start_phase(1)
-        bool success = parse_file(filename)
+        bool success = parser.parse_file(filename)
 
         if success {
             time_phase1 = c64.RDTIM16()
@@ -362,7 +361,7 @@ _return:            nop
             ; txt.nl()
 
             parser.start_phase(2)
-            success = parse_file(filename)
+            success = parser.parse_file(filename)
         }
         parser.done()
         time_phase2 = c64.RDTIM16()
@@ -377,61 +376,6 @@ _return:            nop
         cx16.rombank(4)     ; switch back to basic rom
     }
 
-    sub parse_file(uword filename) -> bool {
-        ; returns success status, and last processed line number in cx16.r15
-        filereader.push_file()
-        bool success = internal_parse_file(filename)
-        filereader.pop_file()
-        return success
-    }
-
-    sub internal_parse_file(uword filename) -> bool {
-        ; returns success status, and last processed line number in cx16.r15
-
-        if parser.phase==1 {
-            if not filereader.read_file(drivenumber, filename) {
-                err.print(diskio.status(drivenumber))
-                return false
-            }
-            time_load = c64.RDTIM16()
-        }
-
-        cx16.r15 = 0
-        txt.print("parsing...")
-        if not filereader.start_get_lines(filename) {
-            err.print("can't read lines")
-            return false
-        }
-
-        while filereader.next_line(parser.input_line) {
-            if not parser.process_line() {
-                txt.print("\n\n\x12error.\x92\n last line #")
-                txt.print_uw(filereader.get_line_nr())
-                txt.print(": ")
-                txt.print(parser.word_addrs[0])
-                if parser.word_addrs[1] {
-                    txt.spc()
-                    txt.print(parser.word_addrs[1])
-                }
-                if parser.word_addrs[2] {
-                    txt.spc()
-                    txt.print(parser.word_addrs[2])
-                }
-                txt.print("\n pc: ")
-                txt.print_uwhex(output.program_counter, true)
-                txt.nl()
-                return false
-            }
-        }
-        if filereader.get_line_nr()==0 {
-            err.print("no lines in file")
-            return false
-        }
-
-        cx16.r15 = filereader.get_line_nr()
-        return true
-    }
-
     sub print_summary(uword lines, uword start_address, uword end_address) {
         txt.print("\n\n\x12complete.\x92\n\nstart address: ")
         txt.print_uwhex(start_address, 1)
@@ -442,15 +386,6 @@ _return:            nop
         txt.print(" bytes)\n source lines: ")
         txt.print_uw(lines)
         txt.nl()
-;        txt.print("\n symbol count: ")
-;        txt.print_uw(symbols.numsymbols())
-;        txt.print("\n    load time: ")
-;        txt.print_uw(time_load)
-;        txt.print(" jf.\n phase 1 time: ")
-;        txt.print_uw(time_phase1-time_load)
-;        txt.print(" jf.\n phase 2 time: ")
-;        txt.print_uw(time_phase2-time_phase1)
-;        txt.print(" jf.\n")
         txt.print("   total time: ")
         txt.print_uw(time_phase2)
         txt.print(" jf = ")
@@ -548,6 +483,60 @@ parser {
         txt.spc()
 
         output.init(ph)
+    }
+
+    sub parse_file(uword filename) -> bool {
+        ; returns success status, and last processed line number in cx16.r15
+        filereader.push_file()
+        bool success = parser.internal_parse_file(filename)
+        filereader.pop_file()
+        return success
+    }
+
+    sub internal_parse_file(uword filename) -> bool {
+        ; returns success status, and last processed line number in cx16.r15
+
+        if parser.phase==1 {
+            if not filereader.read_file(main.drivenumber, filename) {
+                err.print(diskio.status(main.drivenumber))
+                return false
+            }
+        }
+
+        cx16.r15 = 0
+        txt.print("parsing...")
+        if not filereader.start_get_lines(filename) {
+            err.print("can't read lines")
+            return false
+        }
+
+        while filereader.next_line(parser.input_line) {
+            if not parser.process_line() {
+                txt.print("\n\n\x12error.\x92\n last line #")
+                txt.print_uw(filereader.get_line_nr())
+                txt.print(": ")
+                txt.print(parser.word_addrs[0])
+                if parser.word_addrs[1] {
+                    txt.spc()
+                    txt.print(parser.word_addrs[1])
+                }
+                if parser.word_addrs[2] {
+                    txt.spc()
+                    txt.print(parser.word_addrs[2])
+                }
+                txt.print("\n pc: ")
+                txt.print_uwhex(output.program_counter, true)
+                txt.nl()
+                return false
+            }
+        }
+        if filereader.get_line_nr()==0 {
+            err.print("no lines in file")
+            return false
+        }
+
+        cx16.r15 = filereader.get_line_nr()
+        return true
     }
 
     sub process_line() -> bool {
@@ -1139,7 +1128,7 @@ _yes        lda  #1
                     output.add_pc(filereader.file_size(filename))
                     return true
                 } else {
-                    return main.parse_file(filename)        ; recursive call
+                    return parse_file(filename)        ; recursive call
                 }
             }
             2 -> {
@@ -1160,7 +1149,7 @@ _yes        lda  #1
                         output.emit(cx16.r0L)
                     }
                 } else {
-                    return main.parse_file(filename)        ; recursive call
+                    return parse_file(filename)        ; recursive call
                 }
             }
         }
