@@ -810,6 +810,7 @@ parser {
                     '<', '>' -> operand_ptr++
                     else -> lsbmsb = 0
                 }
+                ; TODO parse rest of operand as an *expression* (in phase2, should look up any symbols used)
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
                     operand_ptr += parsed_len
@@ -840,11 +841,12 @@ parser {
                 if not @(operand_ptr+1)
                     return instructions.am_Acc      ; Accumulator - no value.
                 sym_ptr = operand_ptr
-                ; fall through to deal with a symbol as an operand (absolute address)
+                ; continue after this to deal with a symbol as an operand (absolute address)
             }
             '(' -> {
                 ; various forms of indirect
                 operand_ptr++
+                ; TODO parse rest of operand as an *expression* with closing parenthesis at the end (in phase2, should look up any symbols used)
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len {
                     return operand_determine_indirect_addrmode(operand_ptr + parsed_len)
@@ -866,6 +868,7 @@ parser {
             }
             '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
                 ; address optionally followed by ,x or ,y or ,address
+                ; TODO parse rest of operand as an *expression*, optionally followed by that suffix (in phase2, should look up any symbols used)
                 parsed_len = conv.any2uword(operand_ptr)
                 if parsed_len
                     return operand_determine_abs_or_zp_addrmode(operand_ptr + parsed_len)
@@ -876,6 +879,7 @@ parser {
 
         ; if we end up here, it wasn't a recognisable numeric operand.
         ; so it must be a symbol, and the addressing mode is Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
+        ; TODO treat it as an *expression* (in phase2, should look up any symbols used)
 
         operand_ptr = sym_ptr
         if is_symbol_start_char(firstchr) {
