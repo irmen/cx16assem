@@ -874,6 +874,11 @@ parser {
                     return operand_determine_abs_or_zp_addrmode(operand_ptr + parsed_len)
                 return instructions.am_Invalid
             }
+            '*' -> {
+                ; current program counter as absolute address
+                cx16.r15 = output.program_counter
+                return instructions.am_Abs
+            }
             else -> sym_ptr = operand_ptr
         }
 
