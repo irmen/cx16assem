@@ -1,10 +1,12 @@
 %import textio
 %import diskio
 %import string
+%import conv
 %import asmsymbols
 %import asmoutput
 %import filereader
 %import instructions
+%import expression
 %import errors
 %zeropage basicsafe
 
@@ -573,16 +575,7 @@ parser {
         ;void string.lower(word_addrs[0])
         ;void string.lower(word_addrs[2])
 
-        bool valid_operand=false
-        if @(word_addrs[2])=='*' {
-            cx16.r15 = output.program_counter
-            valid_operand = true
-        } else {
-            ubyte nlen = conv.any2uword(word_addrs[2])
-            valid_operand = nlen!=0 and @(word_addrs[2]+nlen)==0
-        }
-
-        if valid_operand {
+        if expression.parse_operand(word_addrs[2], phase) != instructions.am_Invalid {
             if str_is1(word_addrs[0], '*') {
                 output.set_pc(cx16.r15)
             } else if phase==1 {
@@ -679,7 +672,7 @@ parser {
         uword @zp instruction_info_ptr = instructions.match(instr_ptr)
         if instruction_info_ptr {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
-            ubyte @zp addr_mode = parse_operand(operand_ptr)
+            ubyte @zp addr_mode = expression.parse_operand(operand_ptr, phase)
 
             if addr_mode {
                 ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
@@ -734,7 +727,7 @@ parser {
                         ubyte comma_idx = string.find(operand_ptr,',')
                         if_cs {
                             cx16.r13 = cx16.r15
-                            if parse_operand(operand_ptr+comma_idx+1) {
+                            if expression.parse_operand(operand_ptr+comma_idx+1, phase) != instructions.am_Invalid {
                                 output.program_counter++
                                 if not calc_relative_branch_into_r14()
                                     return false
@@ -787,230 +780,6 @@ parser {
             return false
         }
         return true
-    }
-
-    sub parse_operand(uword operand_ptr) -> ubyte {
-        ; parses the operand. Returns 2 things:
-        ; - addressing mode id as result value or 0 (am_Invalid) when error
-        ; - operand numeric value in cx16.r15 (if applicable)
-
-        if operand_ptr==0
-            return instructions.am_Imp
-
-        uword @zp sym_ptr
-        ubyte @zp firstchr = @(operand_ptr)
-        ubyte @zp parsed_len
-        when firstchr {
-            0 -> return instructions.am_Imp
-            '#' -> {
-                ; lda #$99   Immediate
-                operand_ptr++
-                ubyte lsbmsb = @(operand_ptr)
-                when lsbmsb {
-                    '<', '>' -> operand_ptr++
-                    else -> lsbmsb = 0
-                }
-                ; TODO parse rest of operand as an *expression* (in phase2, should look up any symbols used)
-                parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len {
-                    operand_ptr += parsed_len
-                    if @(operand_ptr)==0 {
-                        if lsbmsb=='>'
-                            cx16.r15 = msb(cx16.r15)
-                        return instructions.am_Imm
-                    }
-                } else {
-                    if phase==2 {
-                        ; retrieve symbol value
-                        if symbols.getvalue(operand_ptr) {
-                            cx16.r1 = symbols_dt.dt_ubyte
-                            if lsbmsb=='>'
-                                cx16.r15 = msb(cx16.r0)
-                            else
-                                cx16.r15 = lsb(cx16.r0)
-                        } else {
-                            err.print2("undefined symbol:", operand_ptr)
-                            return instructions.am_Invalid
-                        }
-                    }
-                    return instructions.am_Imm
-                }
-                return instructions.am_Invalid
-            }
-            'a' -> {
-                if not @(operand_ptr+1)
-                    return instructions.am_Acc      ; Accumulator - no value.
-                sym_ptr = operand_ptr
-                ; continue after this to deal with a symbol as an operand (absolute address)
-            }
-            '(' -> {
-                ; various forms of indirect
-                operand_ptr++
-                ; TODO parse rest of operand as an *expression* with closing parenthesis at the end (in phase2, should look up any symbols used)
-                parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len {
-                    return operand_determine_indirect_addrmode(operand_ptr + parsed_len)
-                } else {
-                    sym_ptr = operand_ptr
-                    parsed_len = 0
-                    while is_symbol_char(@(operand_ptr)) {
-                        operand_ptr++
-                        parsed_len++
-                    }
-                    if symbols.getvalue2(sym_ptr, parsed_len) {
-                        cx16.r15 = cx16.r0
-                        return operand_determine_indirect_addrmode(operand_ptr)
-                    } else {
-                        err.print2("undefined symbol:", sym_ptr)
-                    }
-                }
-                return instructions.am_Invalid
-            }
-            '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
-                ; address optionally followed by ,x or ,y or ,address
-                ; TODO parse rest of operand as an *expression*, optionally followed by that suffix (in phase2, should look up any symbols used)
-                parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len
-                    return operand_determine_abs_or_zp_addrmode(operand_ptr + parsed_len)
-                return instructions.am_Invalid
-            }
-            '*' -> {
-                ; current program counter as absolute address
-                cx16.r15 = output.program_counter
-                return instructions.am_Abs
-            }
-            else -> sym_ptr = operand_ptr
-        }
-
-        ; if we end up here, it wasn't a recognisable numeric operand.
-        ; so it must be a symbol, and the addressing mode is Abs, AbsX, AbsY (for words), Zp, ZpX, ZpY (for bytes).
-        ; TODO treat it as an *expression* (in phase2, should look up any symbols used)
-
-        operand_ptr = sym_ptr
-        if is_symbol_start_char(firstchr) {
-            operand_ptr++
-            parsed_len = 1
-            while is_symbol_char(@(operand_ptr)) {
-                operand_ptr++
-                parsed_len++
-            }
-
-            ; Process symbol.
-            ;  if it's defined: substitute the value
-            ;  if it's not defined: error (if in phase 2) or skip (if in phase 1)
-            if symbols.getvalue2(sym_ptr, parsed_len) {
-                cx16.r15 = cx16.r0
-                return operand_determine_abs_or_zp_addrmode(operand_ptr)
-            } else {
-                if phase==1 {
-                    ; the symbol is undefined in phase 1.
-                    ; enter it in the symbol table preliminary, and assume it is a word datatype.
-                    ; (if that is not correct, the symbol should be defined before use to correct this...)
-                    cx16.r15 = output.program_counter  ; to avoid branch Rel errors
-                    ubyte symbol_idx = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
-                    if not symbol_idx
-                        return instructions.am_Invalid
-                    return operand_determine_abs_or_zp_addrmode(operand_ptr)
-                }
-                if phase==2 {
-                    err.print2("undefined symbol:", sym_ptr)
-                    return instructions.am_Invalid
-                }
-            }
-            return instructions.am_Invalid
-        }
-
-        return instructions.am_Invalid
-    }
-
-    sub operand_determine_abs_or_zp_addrmode(uword scan_ptr) -> ubyte {
-        if msb(cx16.r15) {
-            ; word value, so absolute or abs indexed
-            if @(scan_ptr)==0
-                return instructions.am_Abs
-            if str_is2(scan_ptr, ",x")
-                return instructions.am_AbsX
-            if str_is2(scan_ptr, ",y")
-                return instructions.am_AbsY
-        } else {
-            ; byte value, so zero page or zp indexed
-            if @(scan_ptr)==0
-                return instructions.am_Zp
-            if str_is2(scan_ptr, ",x")
-                return instructions.am_ZpX
-            if str_is2(scan_ptr, ",y")
-                return instructions.am_ZpY
-            if @(scan_ptr)==',' {
-                ; assume BBR $zp,$aaaa or BBS $zp,$aaaa
-                return instructions.am_Zpr
-            }
-        }
-        return instructions.am_Invalid
-    }
-
-    sub operand_determine_indirect_addrmode(uword scan_ptr) -> ubyte {
-        if msb(cx16.r15) {
-            ; absolute indirects
-            if str_is1(scan_ptr, ')')
-                return instructions.am_Ind
-            if str_is3(scan_ptr, ",x)")
-                return instructions.am_IaX
-        } else {
-            ; zero page indirects
-            if str_is1(scan_ptr, ')')
-                return instructions.am_Izp
-            if str_is3(scan_ptr, ",x)")
-                return instructions.am_IzX
-            if str_is3(scan_ptr, "),y")
-                return instructions.am_IzY
-        }
-
-        return instructions.am_Invalid
-    }
-
-; this is rewritten in assembly because of inner loop optimizations
-;    sub is_symbol_start_char(ubyte chr) -> ubyte {
-;        ; note: chr is not lowercased yet
-;        chr &= $7f
-;        if chr>='a' and chr <= 'z'
-;            return true
-;        return chr=='.' or chr=='@'
-;    }
-
-    asmsub is_symbol_start_char(ubyte chr @A) -> ubyte @A {
-        %asm {{
-            cmp  #'.'
-            beq  _yes
-            cmp  #'@'
-            beq  _yes
-            and  #$7f       ; make lowercase
-            cmp  #'a'
-            bcc  _no
-            cmp  #'z'+1
-            bcc  _yes
-_no         lda  #0
-            rts
-_yes        lda  #1
-            rts
-        }}
-    }
-
-; this is rewritten in assembly because of inner loop optimizations
-;    sub is_symbol_char(ubyte chr) -> ubyte {
-;        if chr>='0' and chr <= '9'
-;            return true
-;        return is_symbol_start_char(chr)
-;    }
-
-    asmsub is_symbol_char(ubyte chr @A) -> ubyte @A {
-        %asm {{
-            cmp  #'0'
-            bcc  is_symbol_start_char
-            cmp  #'9'+1
-            bcs  is_symbol_start_char
-            lda  #1
-            rts
-        }}
     }
 
     sub process_assembler_directive(uword directive, uword operand) -> bool {
