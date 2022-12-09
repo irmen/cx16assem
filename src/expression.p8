@@ -139,6 +139,34 @@ expression {
         return instructions.am_Invalid
     }
 
+    sub parse_expression(str expr, ubyte phase) -> bool {
+        ; TODO parse a simple expression:
+        ;   value   (can be number or symbol)
+        ;   value <oper> value  (operator +/-/*/<</>>)
+        ; returns success and value in cx16.r15
+        uword @requirezp expr_ptr = expr
+
+        sub parse_single_value() -> ubyte {
+            ; this parses a single number or symbol into cx16.r15, returns 0 if fail or else number of consumed characters
+            when(@(expr_ptr)) {
+                '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {
+                    ; hex bin or decimal number
+                    return conv.any2uword(expr_ptr)
+                }
+                '*' -> {
+                    ; current program counter value
+                    cx16.r15 = output.program_counter
+                    return 1
+                }
+                else -> {
+                    ; TODO check for symbol, phase 1/2 difference
+                    err.print2("invalid expression:", expr_ptr)
+                    return 0
+                }
+            }
+        }
+    }
+
     sub operand_determine_indirect_addrmode(uword scan_ptr) -> ubyte {
         if msb(cx16.r15) {
             ; absolute indirects

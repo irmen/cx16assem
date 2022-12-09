@@ -575,6 +575,7 @@ parser {
         ;void string.lower(word_addrs[0])
         ;void string.lower(word_addrs[2])
 
+        ; TODO don't use parse_operand, but parse expression
         if expression.parse_operand(word_addrs[2], phase) != instructions.am_Invalid {
             if str_is1(word_addrs[0], '*') {
                 output.set_pc(cx16.r15)
