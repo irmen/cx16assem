@@ -51,7 +51,7 @@ main {
                     }
                     'a' -> void cli_command_a(argptr, true)
                     'r' -> void cli_command_r(argptr)
-                    'x' -> void cli_command_x(argptr)
+                    'x' -> cli_command_x(argptr)
                     '#' -> {
                         if argptr {
                             set_drivenumber(argptr[0]-'0')
