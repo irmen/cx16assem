@@ -19,12 +19,12 @@ output {
                 program_counter = $ffff
                 pc_min = $ffff
                 pc_max = $0000
-                ubyte numbanks = cx16.numbanks()
+                uword numbanks = cx16.numbanks()
                 if numbanks<10 {
                     err.print("too few ram banks (needs 10 or more)")
                     sys.exit(1)
                 }
-                start_output_bank = numbanks-8        ; 8 top banks = 64 kilobyte output size
+                start_output_bank = lsb(numbanks-8)        ; 8 top banks = 64 kilobyte output size
             }
             2 -> {
                 ; during phase 1, pc_min and pc_max have been set indicating the block of memory
