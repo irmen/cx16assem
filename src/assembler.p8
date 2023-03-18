@@ -153,20 +153,21 @@ main {
     sub self_test() {
         if(cli_command_a("test-allopcodes.asm", false)) {
             ubyte success = false
-            if output.pc_min == $6000 {
-                if output.pc_max == $61e2 {
+            if output.pc_min == $0400 {
+                if output.pc_max == $05e2 {
                     c64.SETMSG(%10000000)       ; enable kernal status messages for load
-                    if diskio.load(drivenumber, "test-allopcodes", $6000) {
+                    if diskio.load(drivenumber, "test-allopcodes", $0400) {
                         success = true
-                        if diskio.load(drivenumber, "test-allopcodes-check", $6200) {
+                        const uword check_addr = $9a00
+                        if diskio.load(drivenumber, "test-allopcodes-check", check_addr) {
                             for cx16.r1 in $0000 to $01e1 {
-                                if @($6000+cx16.r1) != @($6200+cx16.r1) {
+                                if @($0400+cx16.r1) != @(check_addr+cx16.r1) {
                                     txt.print("error: byte ")
                                     txt.print_uwhex(cx16.r1, true)
                                     txt.print(" is wrong, actual ")
-                                    txt.print_ubhex(@($6000+cx16.r1), true)
+                                    txt.print_ubhex(@($0400+cx16.r1), true)
                                     txt.print(" expected ")
-                                    txt.print_ubhex(@($6200+cx16.r1), true)
+                                    txt.print_ubhex(@(check_addr+cx16.r1), true)
                                     txt.nl()
                                     success = false
                                 }
@@ -177,9 +178,9 @@ main {
                     diskio.delete(drivenumber, "test-allopcodes")
                 }
                 else
-                    err.print("end should be $61e2")
+                    err.print("end should be $05e2")
             } else
-                err.print("start should be $6000")
+                err.print("start should be $0400")
 
             txt.print("\n\x12self-test ")
             if success

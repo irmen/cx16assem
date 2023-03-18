@@ -65,8 +65,8 @@ the expected result binary (crossassembled by 64tass).
 
 
 ## How it works internally
-- 
-- Files are read into the banked hiram $a000-$c000, starting from bank 1 (bank 0 is reserved)
+
+- Files are read into the banked hiram $a000-$c000, starting from bank 1 (bank 0 is reserved for the kernal)
 - Metadata about the files (name, address, size) is stored in tables in regular system ram.
 - Parsing is done on lines from the source files that are copied to a small buffer in system ram to be tokenized.
 - Parse phase 1 just builds the symbol table in system ram. This is a hash table for fast lookups.

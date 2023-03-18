@@ -2,7 +2,7 @@
 ; this assembles into 482 bytes.
 
 	.cpu "w65c02"
-	*=$6000
+	*=$0400
 	
 
 ; opcodes 00-0f	

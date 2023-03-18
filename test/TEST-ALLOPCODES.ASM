@@ -1,7 +1,7 @@
 
 ; THIS ASSEMBLES INTO 482 BYTES.
 
-  *=$6000
+  *=$0400
   
 
 ; OPCODES 00-0F  
