@@ -51,7 +51,7 @@ instructions {
         }}
     }
 
-    asmsub  opcode(uword instr_info_ptr @AY, ubyte addr_mode @X) clobbers(X) -> ubyte @A, ubyte @Pc {
+    asmsub  opcode(uword instr_info_ptr @AY, ubyte addr_mode @X) clobbers(X) -> ubyte @A, bool @Pc {
         ; -- input: instruction info struct ptr @AY,  desired addr_mode @X
         ;    output: opcode @A,   valid @carrybit
         %asm {{
@@ -65,7 +65,7 @@ instructions {
             ;sec
             ;jsr  txt.print_uwhex
             ;lda  #13
-            ;jsr  c64.CHROUT
+            ;jsr  cbm.CHROUT
 
             lda  (P8ZP_SCRATCH_W2)
             beq  _multi_addrmodes

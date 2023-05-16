@@ -315,7 +315,7 @@ symbols {
     ; calculate a reasonable byte hash code 0..127 (by adding all the characters and eoring with the length)
     ; returns ok status in Carry (carry clear=all OK carry set = symbol name too long)
     ; hash code up to 127 because we need to use it to index ito a pointer (word) array.
-    asmsub ht_calc_hash(uword symbol @R7) -> ubyte @A, ubyte @Pc {
+    asmsub ht_calc_hash(uword symbol @R7) -> ubyte @A, bool @Pc {
         %asm {{
             stz  P8ZP_SCRATCH_B1        ; the hash
             ldy  #0

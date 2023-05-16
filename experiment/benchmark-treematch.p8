@@ -63,7 +63,7 @@ benchmark {
         repeat 1 {
             valid = 0
             total = 0
-            c64.SETTIM(0,0,0)
+            cbm.SETTIM(0,0,0)
             repeat iterations {
                 for idx in 0 to len(mnemonics)-1 {
                     instr_info = perfecthash.match(mnemonics[idx])
@@ -80,7 +80,7 @@ benchmark {
         repeat 1 {
             valid = 0
             total = 0
-            c64.SETTIM(0,0,0)
+            cbm.SETTIM(0,0,0)
             repeat iterations {
                 for idx in 0 to len(mnemonics)-1 {
                     instr_info = instructions.match(mnemonics[idx])
@@ -99,7 +99,7 @@ benchmark {
     uword amount
 
     sub report_time() {
-        uword current_time = c64.RDTIM16()
+        uword current_time = cbm.RDTIM16()
         txt.print("invalid: ")
         txt.print_uw(amount-valid)
         txt.print("\ntotal: ")

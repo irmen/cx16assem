@@ -1,5 +1,5 @@
 %import textio
-%import cx16diskio
+%import diskio
 %import string
 %import errors
 
@@ -21,17 +21,18 @@ filereader {
         file_stack_ptr = 255
     }
 
-    sub read_file(ubyte drivenumber, uword filename) -> bool {
+    sub read_file(uword filename) -> bool {
         ubyte start_bank = fileregistry.get_load_bank()
         uword address = fileregistry.get_load_address()
         txt.print("loading ")
         txt.print(filename)
-        cx16.r1 = cx16diskio.load_raw(drivenumber, filename, start_bank, address)
+        cx16.rambank(start_bank)
+        cx16.r1 = diskio.load_raw(filename, address)
         if not cx16.r1 {
             err.print("load error")
             return false
         }
-        cx16.r1 = cx16diskio.load_size(start_bank, address, cx16.r1)
+        cx16.r1 = diskio.load_size(start_bank, address, cx16.r1)
         txt.spc()
         txt.print_uw(cx16.r1)
         txt.print(" bytes.\n")
@@ -157,7 +158,7 @@ _return     ; remember the line pointer for next call
     ubyte @shared incbin_end_bank
     uword @shared incbin_end_addr
 
-    asmsub next_byte() -> ubyte @A, ubyte @Pc {
+    asmsub next_byte() -> ubyte @A, bool @Pc {
         %asm {{
             lda  incbin_bank
             cmp  incbin_end_bank

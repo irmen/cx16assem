@@ -12,7 +12,6 @@
 
 main {
 
-    ubyte drivenumber = 8
     ubyte text_color = 1
     ubyte background_color = 11
     const ubyte max_filename_length = 30
@@ -57,7 +56,7 @@ main {
                             set_drivenumber(argptr[0]-'0')
                         } else {
                             txt.print("current disk drive is ")
-                            txt.print_ub(drivenumber)
+                            txt.print_ub(diskio.drivenumber)
                             txt.nl()
                         }
                     }
@@ -155,11 +154,11 @@ main {
             ubyte success = false
             if output.pc_min == $0400 {
                 if output.pc_max == $05e2 {
-                    c64.SETMSG(%10000000)       ; enable kernal status messages for load
-                    if diskio.load(drivenumber, "test-allopcodes", $0400) {
+                    cbm.SETMSG(%10000000)       ; enable kernal status messages for load
+                    if diskio.load("test-allopcodes", $0400) {
                         success = true
                         const uword check_addr = $9a00
-                        if diskio.load(drivenumber, "test-allopcodes-check", check_addr) {
+                        if diskio.load("test-allopcodes-check", check_addr) {
                             for cx16.r1 in $0000 to $01e1 {
                                 if @($0400+cx16.r1) != @(check_addr+cx16.r1) {
                                     txt.print("error: byte ")
@@ -174,8 +173,8 @@ main {
                             }
                         }
                     }
-                    c64.SETMSG(0)
-                    diskio.delete(drivenumber, "test-allopcodes")
+                    cbm.SETMSG(0)
+                    diskio.delete("test-allopcodes")
                 }
                 else
                     err.print("end should be $05e2")
@@ -191,21 +190,21 @@ main {
     }
 
     sub run_file(str filename) {
-        if diskio.f_open(drivenumber, filename) {
+        if diskio.f_open(filename) {
             uword load_address
             void diskio.f_read(&load_address, 2)
             diskio.f_close()
             ; TODO check if program would overwrite the assembler if loaded? but we currently only have the progend() which includes all 'bss' allocated memory...
-            c64.SETMSG(%10000000)       ; enable kernal status messages for load
-            cx16.r1 = diskio.load(drivenumber, filename, 0)
-            c64.SETMSG(0)
+            cbm.SETMSG(%10000000)       ; enable kernal status messages for load
+            cx16.r1 = diskio.load(filename, 0)
+            cbm.SETMSG(0)
             if cx16.r1 {
                 txt.nl()
                 txt.nl()
                 goto load_address
             }
         } else {
-            err.print(diskio.status(drivenumber))
+            err.print(diskio.status())
         }
 
         txt.nl()
@@ -214,9 +213,9 @@ main {
     sub set_drivenumber(ubyte nr) {
         when nr {
             8, 9 -> {
-                drivenumber = nr
+                diskio.set_drive(nr)
                 txt.print("selected disk drive ")
-                txt.print_ub(drivenumber)
+                txt.print_ub(nr)
                 txt.nl()
             }
             else -> {
@@ -234,7 +233,7 @@ main {
                 break   ; found the x16edit rom tag
         }
         if not x16edit_bank {
-            if diskio.load(drivenumber, "x16edit-6000", 0) {
+            if diskio.load("x16edit-6000", 0) {
                 launch_x16edit($6006)
             } else {
                 err.print("no x16edit in rom and no x16edit-6000.prg on disk")
@@ -253,7 +252,7 @@ main {
             cx16.r1H = %00000001        ; enable auto-indent
             cx16.r2L = 4
             cx16.r2H = 80
-            cx16.r3L = drivenumber
+            cx16.r3L = diskio.drivenumber
             cx16.r3H = background_color<<4 | text_color
             cx16.r4 = 0                 ; choose default colors for status bar and headers
             if filename {
@@ -290,9 +289,9 @@ _return:            nop
     }
 
     sub list_asm_files() {
-        if diskio.lf_start_list(drivenumber, "*.asm") {
+        if diskio.lf_start_list("*.asm") {
             txt.print("*.asm files on drive ")
-            txt.print_ub(drivenumber)
+            txt.print_ub(diskio.drivenumber)
             txt.print(":\n\n")
             while diskio.lf_next_entry() {
                 txt.spc()
@@ -306,7 +305,7 @@ _return:            nop
             diskio.lf_end_list()
             return
         }
-        err.print(diskio.status(drivenumber))
+        err.print(diskio.status())
     }
 
     sub display_file(uword filename) {
@@ -314,7 +313,7 @@ _return:            nop
         txt.print(filename)
         txt.nl()
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
-        if diskio.f_open(drivenumber, filename) {
+        if diskio.f_open(filename) {
             uword line = 0
             repeat {
                 void diskio.f_readline(parser.input_line)
@@ -324,17 +323,17 @@ _return:            nop
                 txt.print(": ")
                 txt.print(parser.input_line)
                 txt.nl()
-                if c64.READST() & 64 {
+                if cbm.READST() & 64 {
                     break
                 }
-                if c64.STOP2() {
+                if cbm.STOP2() {
                     err.print("break")
                     break
                 }
             }
             diskio.f_close()
         } else {
-            err.print(diskio.status(drivenumber))
+            err.print(diskio.status())
         }
         cx16.rombank(4)     ; switch back to basic rom
     }
@@ -348,12 +347,12 @@ _return:            nop
         txt.print(filename)
         txt.print("\x92\n")
         cx16.rombank(0)     ; switch to kernal rom for faster file i/o
-        c64.SETTIM(0,0,0)
+        cbm.SETTIM(0,0,0)
         parser.start_phase(1)
         bool success = parser.parse_file(filename)
 
         if success {
-            time_phase1 = c64.RDTIM16()
+            time_phase1 = cbm.RDTIM16()
             txt.print(" (")
             txt.print_uw(symbols.numsymbols())
             txt.print(" symbols)\n")
@@ -367,7 +366,7 @@ _return:            nop
             success = parser.parse_file(filename)
         }
         parser.done()
-        time_phase2 = c64.RDTIM16()
+        time_phase2 = cbm.RDTIM16()
 
         if success {
             void string.copy(filename, previous_successful_filename)
@@ -430,9 +429,9 @@ _return:            nop
             txt.spc()
         }
         
-        diskio.delete(drivenumber, output_filename)
+        diskio.delete(output_filename)
 
-        if diskio.f_open_w(drivenumber, output_filename) {
+        if diskio.f_open_w(output_filename) {
             ubyte[2] prgheader
             prgheader[0] = lsb(start_address)
             prgheader[1] = msb(start_address)
@@ -440,8 +439,8 @@ _return:            nop
                 goto io_error
 
             uword remaining = end_address-start_address
-            ubyte bnk
-            for bnk in output.start_output_bank to output.next_output_bank-1 {
+            ubyte bnk = output.start_output_bank
+            repeat {
                 cx16.rambank(bnk)
                 uword savesize = remaining
                 if savesize > 8192
@@ -451,7 +450,7 @@ _return:            nop
                 remaining -= savesize
                 if remaining==0
                     break
-                ; note: we cannot print characters to the screen here (without switching i/o channels)
+                bnk++
             }
 
             diskio.f_close_w()
@@ -460,10 +459,10 @@ _return:            nop
         }
 
 io_error:
-        err.print(diskio.status(drivenumber))
+        err.print(diskio.status())
 
-;        if not diskio.save(drivenumber, main.start.filename, start_address, end_address-start_address) {
-;            err.print(diskio.status(drivenumber))
+;        if not diskio.save(main.start.filename, start_address, end_address-start_address) {
+;            err.print(diskio.status())
 ;        }
 
     }
@@ -501,8 +500,8 @@ parser {
         ; returns success status, and last processed line number in cx16.r15
 
         if parser.phase==1 {
-            if not filereader.read_file(main.drivenumber, filename) {
-                err.print(diskio.status(main.drivenumber))
+            if not filereader.read_file(filename) {
+                err.print(diskio.status())
                 return false
             }
         }
@@ -935,8 +934,8 @@ parser {
         when phase {
             1 -> {
                 if is_incbin {
-                    if not filereader.read_file(main.drivenumber, filename) {
-                        err.print(diskio.status(main.drivenumber))
+                    if not filereader.read_file(filename) {
+                        err.print(diskio.status())
                         return false
                     }
                     output.add_pc(filereader.file_size(filename))
