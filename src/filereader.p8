@@ -43,11 +43,11 @@ filereader {
         return fileregistry.file_name_ptrs[file_stack_ptr]
     }
 
-    uword[fileregistry.max_num_files] line_ptrs
+    uword[fileregistry.max_num_files] @split line_ptrs
     ubyte[fileregistry.max_num_files] line_banks
-    uword[fileregistry.max_num_files] end_ptrs
+    uword[fileregistry.max_num_files] @split end_ptrs
     ubyte[fileregistry.max_num_files] end_banks
-    uword[fileregistry.max_num_files] current_lines
+    uword[fileregistry.max_num_files] @split current_lines
     ubyte file_stack_ptr
 
     sub get_line_nr() -> uword {
