@@ -64,22 +64,20 @@ expression {
                 operand_ptr++
                 ; TODO parse rest of operand as an *expression* with closing parenthesis at the end (in phase 2, should look up any symbols used)
                 parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len {
+                if parsed_len 
                     return operand_determine_indirect_addrmode(operand_ptr + parsed_len)
-                } else {
-                    sym_ptr = operand_ptr
-                    parsed_len = 0
-                    while is_symbol_char(@(operand_ptr)) {
-                        operand_ptr++
-                        parsed_len++
-                    }
-                    if symbols.getvalue2(sym_ptr, parsed_len) {
-                        cx16.r15 = cx16.r0
-                        return operand_determine_indirect_addrmode(operand_ptr)
-                    } else {
-                        err.print2("undefined symbol:", sym_ptr)
-                    }
+
+                sym_ptr = operand_ptr
+                parsed_len = 0
+                while is_symbol_char(@(operand_ptr)) {
+                    operand_ptr++
+                    parsed_len++
                 }
+                if symbols.getvalue2(sym_ptr, parsed_len) {
+                    cx16.r15 = cx16.r0
+                    return operand_determine_indirect_addrmode(operand_ptr)
+                }
+                err.print2("undefined symbol:", sym_ptr)
                 return instructions.am_Invalid
             }
             '$', '%', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' -> {

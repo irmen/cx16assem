@@ -789,15 +789,15 @@ parser {
         if operand {
             if string.compare(directive, ".byte")==0
                 return proces_directive_byte(operand)
-            else if string.compare(directive, ".word")==0
+            if string.compare(directive, ".word")==0
                 return proces_directive_word(operand)
-            else if string.compare(directive, ".str")==0
+            if string.compare(directive, ".str")==0
                 return proces_directive_str(operand, false)
-            else if string.compare(directive, ".strz")==0
+            if string.compare(directive, ".strz")==0
                 return proces_directive_str(operand, true)
-            else if string.compare(directive, ".include")==0
+            if string.compare(directive, ".include")==0
                 return process_directive_include(operand, false)
-            else if string.compare(directive, ".incbin")==0
+            if string.compare(directive, ".incbin")==0
                 return process_directive_include(operand, true)
         }
 
