@@ -266,7 +266,7 @@ main {
                     pha
                     lda  #<_return
                     pha
-                    jmp  (entrypoint)
+                    jmp  (p8_entrypoint)
 _return:            nop
                     plx
                 }}
@@ -280,7 +280,7 @@ _return:            nop
                     pha
                     lda  #<_return
                     pha
-                    jmp  (entrypoint)
+                    jmp  (p8_entrypoint)
 _return:            nop
                     plx
                 }}
@@ -988,7 +988,7 @@ parser {
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
             ldy  #0
-            jmp  str_is3._is_2_entry
+            jmp  p8_str_is3._is_2_entry
         }}
     }
 

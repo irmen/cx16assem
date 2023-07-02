@@ -429,7 +429,7 @@ def generate_mnemonics_parser_treematch():
 
     tree = make_tree()
 
-    print("get_opcode_info    .proc")
+    print("gen_get_opcode_info    .proc")
     print("_mnem_fourth_letter = cx16.r4")
     print("_mnem_fifth_letter = cx16.r5")
     for first in tree:

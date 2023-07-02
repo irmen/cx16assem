@@ -45,7 +45,7 @@ instructions {
             ply             ; third letter in Y
             lda  (P8ZP_SCRATCH_W1)
             and  #$7f       ; lowercase, first letter in A
-            jsr  get_opcode_info
+            jsr  gen_get_opcode_info
             plx
             rts
         }}

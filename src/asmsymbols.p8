@@ -326,7 +326,7 @@ _loop       lda  (cx16.r7),y
             sta  P8ZP_SCRATCH_B1
             iny
             bra  _loop
-_end        cpy  #max_name_len+1
+_end        cpy  #p8_max_name_len+1
             bcs  _toolong
             tya
             asl  a

@@ -180,19 +180,19 @@ perfecthash {
             ldy  #2
             lda  (P8ZP_SCRATCH_W1),y
             tay
-            lda  asso_values,y
+            lda  p8_asso_values,y
             sta  _result
             dey
             lda  (P8ZP_SCRATCH_W1),y
             ina
             tay
-            lda  asso_values,y
+            lda  p8_asso_values,y
             clc
             adc  _result
             sta  _result
             lda  (P8ZP_SCRATCH_W1)
             tay
-            lda  asso_values,y
+            lda  p8_asso_values,y
             clc
             adc  _result
             sta  _result
@@ -201,7 +201,7 @@ perfecthash {
             tay
             lda  (P8ZP_SCRATCH_W1),y
             tay
-            lda  asso_values,y
+            lda  p8_asso_values,y
             clc
             adc  _result
             rts
