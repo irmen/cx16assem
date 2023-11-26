@@ -39,19 +39,39 @@ def hashfunc2(label):
     length=len(label)
     return (sum([ord(c) for c in label]) ^ (length*2)) & 127
 
+def hashfunc3(label):
+    # this is the  string.hash  function in the prog8 string library
+    hashcode = 179
+    carry = 0
+    for c in label:
+        newcarry = 1 if hashcode&128 else 0
+        hashcode = (hashcode << 1) & 255 | carry
+        carry = newcarry
+        hashcode ^= ord(c)
+    return hashcode
 
-hash_buckets = [0] * 128
-for lbl in labels:
-    hashvalue = hashfunc1(lbl)
-    hash_buckets[hashvalue] += 1
-plt.subplots(figsize = (20,5))
-p=sns.barplot(list(range(len(hash_buckets))), hash_buckets)
-plt.show()
 
-hash_buckets = [0] * 128
-for lbl in labels:
-    hashvalue = hashfunc2(lbl)
-    hash_buckets[hashvalue] += 1
-plt.subplots(figsize = (20,5))
-sns.barplot(list(range(len(hash_buckets))), hash_buckets)
-plt.show()
+if __name__=="__main__":
+    hash_buckets = [0] * 128
+    for lbl in labels:
+        hashvalue = hashfunc1(lbl)
+        hash_buckets[hashvalue] += 1
+    plt.subplots(figsize = (20,5))
+    p=sns.barplot(x=list(range(len(hash_buckets))), y=hash_buckets)
+    plt.show()
+
+    hash_buckets = [0] * 128
+    for lbl in labels:
+        hashvalue = hashfunc2(lbl)
+        hash_buckets[hashvalue] += 1
+    plt.subplots(figsize = (20,5))
+    sns.barplot(x=list(range(len(hash_buckets))), y=hash_buckets)
+    plt.show()
+
+    hash_buckets = [0] * 256
+    for lbl in labels:
+        hashvalue = hashfunc3(lbl)
+        hash_buckets[hashvalue] += 1
+    plt.subplots(figsize = (20,5))
+    sns.barplot(x=list(range(len(hash_buckets))), y=hash_buckets)
+    plt.show()

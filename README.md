@@ -76,6 +76,10 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
+- fix hanging on dir list on non existing disk drive number
+- replace the hash routine in asmsymbols.p8 by the standard string.hash (note: needs AND #127 afterwards!)
+- make the symbol hashtable not restricted to 127 entries but full 256 by @splitting it
+
 - add `.fill` command to fill a number of bytes, optionally with given value
 
 - Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 

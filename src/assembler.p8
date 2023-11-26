@@ -213,7 +213,7 @@ main {
     sub set_drivenumber(ubyte nr) {
         when nr {
             8, 9 -> {
-                diskio.set_drive(nr)
+                diskio.drivenumber = nr
                 txt.print("selected disk drive ")
                 txt.print_ub(nr)
                 txt.nl()
@@ -474,7 +474,7 @@ parser {
     const ubyte max_line_length = 160
 
     str input_line = "?" * max_line_length
-    uword[3] @zp @split word_addrs
+    uword[3] @zp word_addrs
     ubyte phase             ; 1 = scan symbols, 2 = generate machine code
     bool error_was_reported = false
 
