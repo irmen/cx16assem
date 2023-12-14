@@ -760,7 +760,6 @@ parser {
     }
 
     sub process_assembler_directive(uword directive, uword operand) -> bool {
-        ; we recognise .byte, .word and .str right now
         ; void string.lower(directive)
         if operand {
             if string.compare(directive, ".byte")==0
@@ -775,8 +774,20 @@ parser {
                 return process_directive_include(operand, false)
             if string.compare(directive, ".incbin")==0
                 return process_directive_include(operand, true)
+            if string.compare(directive, ".org")==0
+                return process_directive_org(operand)
         }
 
+        err.print("syntax error")
+        return false
+    }
+
+    sub process_directive_org(uword operand) -> bool {
+        ubyte length = conv.any2uword(operand)
+        if length {
+            output.set_pc(cx16.r15)
+            return true
+        }
         err.print("syntax error")
         return false
     }
