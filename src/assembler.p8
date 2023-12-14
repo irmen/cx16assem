@@ -225,30 +225,21 @@ main {
     }
 
     sub edit_file(uword filename) {
-        ; activate x16edit, see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
+        ; activate rom based x16edit, see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
         ubyte x16edit_bank
         for x16edit_bank in 31 downto 0  {
             cx16.rombank(x16edit_bank)
-            if string.compare($fff0, "x16edit")==0
-                break   ; found the x16edit rom tag
-        }
-        if not x16edit_bank {
-            if diskio.load("x16edit-6000", 0) {
-                launch_x16edit($6006)
-            } else {
-                err.print("no x16edit in rom and no x16edit-6000.prg on disk")
-                sys.wait(120)
+            if string.compare($fff0, "x16edit")==0 {
+                launch_x16edit()
+                cx16.rombank(4)
+                return
             }
-            return
         }
-
-        ; launch the rom based editor
-        cx16.rombank(x16edit_bank)
-        launch_x16edit($c006)
-        cx16.rombank(4)
+        err.print("error: no x16edit found in rom")
+        sys.wait(180)
         return
 
-        sub launch_x16edit(uword entrypoint) {
+        sub launch_x16edit() {
             cx16.r1H = %00000001        ; enable auto-indent
             cx16.r2L = 4
             cx16.r2H = 80
@@ -258,33 +249,15 @@ main {
             if filename {
                 cx16.r0 = filename
                 cx16.r1L = string.length(filename)
-                %asm {{
-                    phx
-                    ldx  #1
-                    ldy  #255
-                    lda  #>_return
-                    pha
-                    lda  #<_return
-                    pha
-                    jmp  (p8_entrypoint)
-_return:            nop
-                    plx
-                }}
             } else {
                 cx16.r1L = 0
-                %asm {{
-                    phx
-                    ldx  #1
-                    ldy  #255
-                    lda  #>_return
-                    pha
-                    lda  #<_return
-                    pha
-                    jmp  (p8_entrypoint)
-_return:            nop
-                    plx
-                }}
             }
+            %asm {{
+                ldx  #1
+                ldy  #255
+                jsr  $c006
+            }}
+            return
         }
     }
 

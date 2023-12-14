@@ -55,8 +55,7 @@ the expected result binary (crossassembled by 64tass).
 - include source code from a file using ``.include "filename"``
 - disk device 8 and 9 selectable
 - configurable text and screen colors
-- can switch to (rom-based) x16edit to edit a file, to avoid having to swap-load programs all the time
-  You'll have to create a custom rom with x16edit embedded in it, see [instructions](https://github.com/stefan-b-jakobsson/x16-edit/blob/master/docs/romnotes.pdf)
+- can switch to (rom-based) X16Edit to edit a file, to avoid having to swap-load programs all the time.
 - includes a convenient 'r' run command to immediately load and execute the saved program file (or another file) to speed up work flow
 - for speed reasons, the source text is parsed in a case-sensitive way.
   Everything has to be in lowercase petscii, or it will be a syntax error. Except labels; they can contain upppercase petscii letters if you want.
