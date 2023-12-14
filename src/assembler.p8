@@ -226,15 +226,18 @@ main {
 
     sub edit_file(uword filename) {
         ; activate rom based x16edit, see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
+        sys.enable_caseswitch()     ; workaround for character set issue in X16Edit 0.7.1
         ubyte x16edit_bank
         for x16edit_bank in 31 downto 0  {
             cx16.rombank(x16edit_bank)
             if string.compare($fff0, "x16edit")==0 {
                 launch_x16edit()
                 cx16.rombank(4)
+                sys.disable_caseswitch()
                 return
             }
         }
+        sys.disable_caseswitch()
         err.print("error: no x16edit found in rom")
         sys.wait(180)
         return

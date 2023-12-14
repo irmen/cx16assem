@@ -80,6 +80,7 @@ the expected result binary (crossassembled by 64tass).
 - make the symbol hashtable not restricted to 127 entries but full 256 by @splitting it
 
 - add `.fill` command to fill a number of bytes, optionally with given value
+- add `.org $xxxx` as a synonym for `* = $xxxx`
 
 - Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 
   More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack) so may never be supported.
