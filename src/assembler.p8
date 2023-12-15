@@ -1071,8 +1071,7 @@ _is_2_entry
             char_idx++
         }
 
-        if trimmed[char_idx] in [' ', 9, 160, ';']
-            trimmed[char_idx] = 0
+        trimmed[char_idx] = 0
     }
 
     sub debug_print_words() {        ; TODO remove
