@@ -53,7 +53,7 @@ expression {
                 }
                 return instructions.am_Invalid
             }
-            'a' -> {
+            'a','A' -> {
                 if not @(operand_ptr+1)
                     return instructions.am_Acc      ; Accumulator - no value.
                 sym_ptr = operand_ptr
@@ -241,7 +241,7 @@ expression {
             beq  _yes
             cmp  #'@'
             beq  _yes
-            and  #$7f       ; make lowercase
+            jsr  string.lowerchar
             cmp  #'a'
             bcc  _no
             cmp  #'z'+1

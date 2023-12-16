@@ -75,7 +75,6 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- fix voidstar's STZ problem (file encoding issue)
 - fix hanging on dir list on non existing disk drive number
 - replace the hash routine in asmsymbols.p8 by the standard string.hash (note: needs AND #127 afterwards!)
 - make the symbol hashtable not restricted to 127 entries but full 256 by @splitting it
@@ -83,7 +82,7 @@ the expected result binary (crossassembled by 64tass).
 
 - add `.fill` command to fill a number of bytes, optionally with given value
 
-      - add emit2() and emit3() to emit 2 and 3 bytes at a time to reduce overhead, however, they have to do more complex checking at bank boundary $c000... not worth it? 
+- add emit2() and emit3() to emit 2 and 3 bytes at a time to reduce overhead, however, they have to do more complex checking at bank boundary $c000... not worth it? 
  
 - Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 
   More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack) so may never be supported.

@@ -36,7 +36,34 @@ filereader {
         txt.spc()
         txt.print_uw(cx16.r1)
         txt.print(" bytes.\n")
-        return fileregistry.add(filename, cx16.r1, cx16.getrambank())
+        if fileregistry.add(filename, cx16.r1, cx16.getrambank()) {
+            postprocess(fileregistry.search(filename))
+            return true
+        }
+        return false
+    }
+
+    sub postprocess(ubyte file_index) {
+        ubyte start_bank = fileregistry.file_start_banks[file_index]
+        ubyte end_bank = fileregistry.file_end_banks[file_index]
+        cx16.r4 = fileregistry.file_start_addresses[file_index]       ; start address
+        cx16.r5 = fileregistry.file_end_addresses[file_index]         ; end address
+
+        cx16.rambank(start_bank)
+        while start_bank!=end_bank or cx16.r4!=cx16.r5 {
+            cx16.r0L = @(cx16.r4)
+            if cx16.r0L >= 192 {
+                ; translate "high" petscii letters to regular range
+                @(cx16.r4) = cx16.r0L - 96
+            }
+            cx16.r4++
+            if msb(cx16.r4)==$c0  {
+                ; next hiram bank
+                cx16.r4 = $a000
+                start_bank++
+                cx16.rambank(start_bank)
+            }
+        }
     }
 
     sub current_file() -> uword {

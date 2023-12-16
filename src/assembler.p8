@@ -29,6 +29,16 @@ main {
             txt.print("\n> ")
             txt.color(text_color)
             if txt.input_chars(commandline) {
+                if commandline[0] in ['>', ' ', 160] {
+                    ; strip away the prompt prefix
+                    cx16.r0=&commandline+1
+                    while string.isspace(@(cx16.r0))
+                        cx16.r0++
+                    void string.copy(cx16.r0, commandline)
+                    if not commandline[0]
+                        continue
+                }
+
                 txt.print("\n\n")
                 uword argptr = 0
                 if commandline[1]
@@ -573,7 +583,7 @@ parser {
         uword @zp label_ptr = 0
         uword @zp instr_ptr = 0
         uword @zp operand_ptr = 0
-        bool starts_with_whitespace = input_line[0] in [' ', 9, 160]
+        bool starts_with_whitespace = string.isspace(input_line[0])
 
 ;        void string.lower(word_addrs[0])
 ;        void string.lower(word_addrs[1])
@@ -646,7 +656,12 @@ parser {
     }
 
     sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> bool {
-        uword @zp instruction_info_ptr = instructions.match(instr_ptr)
+        ; normalize the character set of the instruction mnemonic, otherwise it can't always match
+        cx16.r0 = instr_ptr
+        @(cx16.r0) = string.lowerchar(@(cx16.r0))
+        @(cx16.r0+1) = string.lowerchar(@(cx16.r0+1))
+        @(cx16.r0+2) = string.lowerchar(@(cx16.r0+2))
+        uword @zp instruction_info_ptr = instructions.match(cx16.r0)
         if instruction_info_ptr {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
             ubyte @zp addr_mode = expression.parse_operand(operand_ptr, phase)
@@ -1007,12 +1022,9 @@ _is_2_entry
 
     sub str_trimleft(uword st) -> uword {
         cx16.r0 = st
-        repeat {
-            when @(cx16.r0) {
-                ' ', 9, 160 -> cx16.r0++
-                else -> return cx16.r0
-            }
-        }
+        while string.isspace(@(cx16.r0))
+            cx16.r0++
+        return cx16.r0
     }
 
     sub split_input() {
@@ -1028,18 +1040,14 @@ _is_2_entry
             word_addrs[0] = trimmed
             word_count=2
             repeat {
-                when trimmed[char_idx] {
-                    ' ', 0, 9, 160 -> {
-                        trimmed += char_idx
-                        @(trimmed) = 0
-                        trimmed++
-                        word_addrs[1] = str_trimleft(trimmed)
-                        return
-                    }
-                    else -> {
-                        char_idx++
-                    }
+                if string.isspace(trimmed[char_idx]) {
+                    trimmed += char_idx
+                    @(trimmed) = 0
+                    trimmed++
+                    word_addrs[1] = str_trimleft(trimmed)
+                    return
                 }
+                char_idx++
             }
         }
 
