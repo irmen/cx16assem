@@ -214,7 +214,7 @@ main {
                 goto load_address
             }
         } else {
-            err.print(diskio.status())
+            err.print_disk_status()
         }
 
         txt.nl()
@@ -291,7 +291,7 @@ main {
             diskio.lf_end_list()
             return
         }
-        err.print(diskio.status())
+        err.print_disk_status()
     }
 
     sub display_file(uword filename) {
@@ -319,7 +319,7 @@ main {
             }
             diskio.f_close()
         } else {
-            err.print(diskio.status())
+            err.print_disk_status()
         }
         cx16.rombank(4)     ; switch back to basic rom
     }
@@ -445,7 +445,7 @@ main {
         }
 
 io_error:
-        err.print(diskio.status())
+        err.print_disk_status()
 
 ;        if not diskio.save(main.start.filename, start_address, end_address-start_address) {
 ;            err.print(diskio.status())
@@ -487,7 +487,7 @@ parser {
 
         if parser.phase==1 {
             if not filereader.read_file(filename) {
-                err.print(diskio.status())
+                err.print_disk_status()
                 return false
             }
         }
@@ -937,7 +937,7 @@ parser {
             1 -> {
                 if is_incbin {
                     if not filereader.read_file(filename) {
-                        err.print(diskio.status())
+                        err.print_disk_status()
                         return false
                     }
                     output.add_pc(filereader.file_size(filename))

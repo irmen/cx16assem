@@ -1,4 +1,5 @@
 %import textio
+%import diskio
 
 err {
     sub print(str message) {
@@ -13,5 +14,9 @@ err {
         txt.spc()
         txt.print(extra)
         txt.nl()
+    }
+
+    sub print_disk_status() {
+        print(diskio.status())
     }
 }

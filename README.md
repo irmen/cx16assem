@@ -75,7 +75,6 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- fix hanging on dir list on non existing disk drive number
 - replace the hash routine in asmsymbols.p8 by the standard string.hash (note: needs AND #127 afterwards!)
 - make the symbol hashtable not restricted to 127 entries but full 256 by @splitting it
 - add a command to jump into the monitor (m?)
