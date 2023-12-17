@@ -95,12 +95,12 @@ symbols {
     ;       datatype = one of the datatype constants for this value.
     ; RETURNS: success boolean.
     sub setvalue(uword symbol, uword value, ubyte datatype) -> bool {
-        ubyte hash = ht_calc_hash(symbol)
-        if_cs {
+        if string.length(symbol) > max_name_len {
             err.print("hash error name too long")
             return false
         }
 
+        ubyte hash = string.hash(symbol) & 127
         uword existing_entry_ptr = ht_find_entry_in_bucket(hash, symbol)
         if existing_entry_ptr {
             when @(existing_entry_ptr) {
@@ -136,12 +136,11 @@ symbols {
     ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
     sub setvalue_new(uword symbol, uword value, ubyte datatype) -> bool {
-        ubyte hash = ht_calc_hash(symbol)
-        if_cs {
+        if string.length(symbol) > max_name_len {
             err.print("hash error name too long")
             return false
         }
-        return ht_add_entry(hash, symbol, value, datatype)
+        return ht_add_entry(string.hash(symbol) & 127, symbol, value, datatype)
     }
 
     ; SUBROUTINE: setvalue2
@@ -180,13 +179,7 @@ symbols {
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
     sub getvalue(uword symbol) -> bool {
-        ubyte hash = ht_calc_hash(symbol)
-        if_cs {
-            err.print("hash error name too long")
-            return false
-        }
-
-        uword entry_ptr = ht_find_entry_in_bucket(hash, symbol)
+        uword entry_ptr = ht_find_entry_in_bucket(string.hash(symbol) & 127, symbol)
         if entry_ptr {
             cx16.r1 = @(entry_ptr)
             if cx16.r1 != symbols_dt.dt_ubyte and cx16.r1 != symbols_dt.dt_uword {
@@ -310,31 +303,5 @@ symbols {
                 return entryptr
         }
         return $0000
-    }
-
-    ; calculate a reasonable byte hash code 0..127 (by adding all the characters and eoring with the length)
-    ; returns ok status in Carry (carry clear=all OK carry set = symbol name too long)
-    ; hash code up to 127 because we need to use it to index ito a pointer (word) array.
-    asmsub ht_calc_hash(uword symbol @R7) -> ubyte @A, bool @Pc {
-        %asm {{
-            stz  P8ZP_SCRATCH_B1        ; the hash
-            ldy  #0
-            clc
-_loop       lda  (cx16.r7),y
-            beq  _end
-            adc  P8ZP_SCRATCH_B1
-            sta  P8ZP_SCRATCH_B1
-            iny
-            bra  _loop
-_end        cpy  #p8_max_name_len+1
-            bcs  _toolong
-            tya
-            asl  a
-            eor  P8ZP_SCRATCH_B1
-            and  #127
-            clc
-_toolong
-            rts
-        }}
     }
 }

@@ -75,9 +75,8 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- replace the hash routine in asmsymbols.p8 by the standard string.hash (note: needs AND #127 afterwards!)
-- make the symbol hashtable not restricted to 127 entries but full 256 by @splitting it
 - add a command to jump into the monitor (m?)
+- make the symbol hashtable not restricted to 127 entries but full 256 by @splitting it, remove the &127 from string.hash calls
 
 - add `.fill` command to fill a number of bytes, optionally with given value
 
