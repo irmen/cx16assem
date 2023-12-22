@@ -735,11 +735,12 @@ parser {
                     }
                     2 -> {
                         output.emit(opcode)
-                        if num_operand_bytes==1 {
-                            output.emit(lsb(cx16.r15))
-                        } else if num_operand_bytes == 2 {
-                            output.emit(lsb(cx16.r15))
-                            output.emit(msb(cx16.r15))
+                        when num_operand_bytes {
+                            1 -> output.emit(lsb(cx16.r15))
+                            2 -> {
+                                output.emit(lsb(cx16.r15))
+                                output.emit(msb(cx16.r15))
+                            }
                         }
                     }
                 }
@@ -783,6 +784,8 @@ parser {
                 return process_directive_include(operand, true)
             if string.compare(directive, ".org")==0
                 return process_directive_org(operand)
+            if string.compare(directive, ".fill")==0
+                return process_directive_fill(operand)
         }
 
         err.print("syntax error")
@@ -793,6 +796,41 @@ parser {
         ubyte length = conv.any2uword(operand)
         if length {
             output.set_pc(cx16.r15)
+            return true
+        }
+        err.print("syntax error")
+        return false
+    }
+
+    sub process_directive_fill(uword operand) -> bool {
+        ubyte length = conv.any2uword(operand)
+        if length {
+            ubyte fillvalue = 0
+            uword fillsize = cx16.r15
+            operand += length
+            operand = str_trimleft(operand)
+            if @(operand)==',' {
+                operand++
+                operand = str_trimleft(operand)
+                length = conv.any2uword(operand)
+                if length {
+                    if msb(cx16.r15) {
+                        err.print("value too large")
+                        return false
+                    }
+                    fillvalue = lsb(cx16.r15)
+                } else {
+                    err.print("syntax error")
+                    return false
+                }
+            }
+
+            repeat fillsize {
+                if phase==2
+                    output.emit(fillvalue)
+                else
+                    output.inc_pc(0)
+            }
             return true
         }
         err.print("syntax error")

@@ -50,7 +50,8 @@ the expected result binary (crossassembled by 64tass).
 - symbolic labels
 - symbol defines ('variables')
 - use `<value` and `>value` to get the lsb and msb of a value respectively
-- define data with `.byte  1,2,3,4`, `.word $a004,$ffff`, `.str  "hello!"` and `.strz  "zeroterminatedstring"`
+- define data with `.byte  1,2,3,4`, `.word $a004,$ffff`, `.fill 100` (insert 100 zero bytes), `.fill 999,$42` (insert 999 bytes with value $42)
+- define strings with `.str  "hello!"` and `.strz  "zeroterminatedstring"`
 - include binary data from a file using `.incbin "filename"`
 - include source code from a file using `.include "filename"`
 - disk device 8 and 9 selectable
@@ -75,10 +76,6 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- add `.fill` command to fill a number of bytes, optionally with given value
-
-- add emit2() and emit3() to emit 2 and 3 bytes at a time to reduce overhead, however, they have to do more complex checking at bank boundary $c000... not worth it? 
- 
 - Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 
   More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack) so may never be supported.
   (https://en.wikipedia.org/wiki/Shunting_yard_algorithm ?)
