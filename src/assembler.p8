@@ -60,6 +60,7 @@ main {
                     }
                     'a' -> void cli_command_a(argptr, true)
                     'r' -> void cli_command_r(argptr)
+                    'm' -> cli_command_m()
                     'x' -> cli_command_x(argptr)
                     '#' -> {
                         if argptr {
@@ -133,6 +134,13 @@ main {
         }
     }
 
+    sub cli_command_m() {
+        txt.print("Entering the machine language monitor.\n")
+        txt.print("(use 'g' without args, to return directly back into the assembler)\n")
+        cx16.monitor()
+        txt.nl()
+    }
+
     sub print_intro() {
         txt.color2(text_color, background_color)
         txt.clear_screen()
@@ -154,6 +162,7 @@ main {
         "  # <number>   - select disk device number (8 or 9, default=8)\n")
         txt.print("  t            - cycle text color\n" +
         "  b            - cycle background color\n"+
+        "  m            - enter machine language monitor\n"+
         "  ? or h       - print this help\n" +
         "  =            - self-test\n" +
         "  q            - quit\n")
@@ -236,41 +245,24 @@ main {
 
     sub edit_file(uword filename) {
         ; activate rom based x16edit, see https://github.com/stefan-b-jakobsson/x16-edit/tree/master/docs
-        sys.enable_caseswitch()     ; workaround for character set issue in X16Edit 0.7.1
-        ubyte x16edit_bank
-        for x16edit_bank in 31 downto 0  {
+        ubyte x16edit_bank = cx16.search_x16edit()
+        if x16edit_bank<255 {
+            sys.enable_caseswitch()     ; workaround for character set issue in X16Edit 0.7.1
+            ubyte filename_length = 0
+            if filename
+                filename_length = string.length(filename)
+            ubyte old_bank = cx16.getrombank()
             cx16.rombank(x16edit_bank)
-            if string.compare($fff0, "x16edit")==0 {
-                launch_x16edit()
-                cx16.rombank(4)
-                sys.disable_caseswitch()
-                return
-            }
-        }
-        sys.disable_caseswitch()
-        err.print("error: no x16edit found in rom")
-        sys.wait(180)
-        return
-
-        sub launch_x16edit() {
-            cx16.r1H = %00000001        ; enable auto-indent
-            cx16.r2L = 4
-            cx16.r2H = 80
-            cx16.r3L = diskio.drivenumber
-            cx16.r3H = background_color<<4 | text_color
-            cx16.r4 = 0                 ; choose default colors for status bar and headers
-            if filename {
-                cx16.r0 = filename
-                cx16.r1L = string.length(filename)
-            } else {
-                cx16.r1L = 0
-            }
-            %asm {{
-                ldx  #1
-                ldy  #255
-                jsr  $c006
-            }}
-            return
+            cx16.x16edit_loadfile_options(1, 255, filename,
+                mkword(%00000011, filename_length),         ; auto-indent and word-wrap enable
+                mkword(80, 4),          ; wrap and tabstop
+                mkword(background_color<<4 | text_color, diskio.drivenumber),
+                mkword(0,0))
+            cx16.rombank(old_bank)
+            sys.disable_caseswitch()
+        } else {
+            err.print("error: no x16edit found in rom")
+            sys.wait(180)
         }
     }
 
@@ -990,7 +982,7 @@ parser {
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
             ldy  #0
-            jmp  p8_str_is3._is_2_entry
+            jmp  p8s_str_is3._is_2_entry
         }}
     }
 

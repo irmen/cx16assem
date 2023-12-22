@@ -118,8 +118,8 @@ filereader {
         cx16.rambank(line_banks[file_stack_ptr])   ; set RAM bank, have to do this every time because kernal keeps resetting it
         %asm {{
             phx
-            lda  p8_buffer
-            ldy  p8_buffer+1
+            lda  p8v_buffer
+            ldy  p8v_buffer+1
             sta  P8ZP_SCRATCH_W2
             sty  P8ZP_SCRATCH_W2+1
             ldy  #0             ; y = index into output buffer
@@ -134,10 +134,10 @@ _charloop
             bne  _processchar
             ; bank overflow, switch to next bank
             phy
-            ldy  p8_file_stack_ptr
-            lda  p8_line_banks,y
+            ldy  p8v_file_stack_ptr
+            lda  p8v_line_banks,y
             ina
-            sta  p8_line_banks,y
+            sta  p8v_line_banks,y
             sta  $00        ; set new RAM bank
             ply
             stz  cx16.r0L
@@ -147,7 +147,7 @@ _processchar
             txa
             bne  +
             ; end of file
-            inc  p8_lines_exhausted
+            inc  p8v_lines_exhausted
             bra  _eol
 +           cmp  #10
             beq  _eol
@@ -187,36 +187,36 @@ _return     ; remember the line pointer for next call
 
     asmsub next_byte() -> ubyte @A, bool @Pc {
         %asm {{
-            lda  p8_incbin_bank
-            cmp  p8_incbin_end_bank
+            lda  p8v_incbin_bank
+            cmp  p8v_incbin_end_bank
             bne  _more
-            lda  p8_incbin_addr
-            cmp  p8_incbin_end_addr
+            lda  p8v_incbin_addr
+            cmp  p8v_incbin_end_addr
             bne  _more
-            lda  p8_incbin_addr+1
-            cmp  p8_incbin_end_addr+1
+            lda  p8v_incbin_addr+1
+            cmp  p8v_incbin_end_addr+1
             bne  _more
             lda  #0
             sec                 ; end of file
             rts
-_more       lda  p8_incbin_bank
+_more       lda  p8v_incbin_bank
             sta  $0             ; make sure to set the ram bank again because other code changes it
-            lda  p8_incbin_addr
+            lda  p8v_incbin_addr
             sta  P8ZP_SCRATCH_W1
-            lda  p8_incbin_addr+1
+            lda  p8v_incbin_addr+1
             sta  P8ZP_SCRATCH_W1+1
             lda  (P8ZP_SCRATCH_W1)
             pha
-            inc  p8_incbin_addr
+            inc  p8v_incbin_addr
             bne  +
-            inc  p8_incbin_addr+1
-+           lda  p8_incbin_addr+1
+            inc  p8v_incbin_addr+1
++           lda  p8v_incbin_addr+1
             cmp  #$c0
             bne  +
             ; bank overflow, skip to next bank
-            inc  p8_incbin_bank
+            inc  p8v_incbin_bank
             lda  #$a0
-            sta  p8_incbin_addr+1
+            sta  p8v_incbin_addr+1
 +           pla
             clc             ; there's more
             rts

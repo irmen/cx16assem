@@ -219,9 +219,9 @@ expression {
     asmsub is_symbol_char(ubyte chr @A) -> ubyte @A {
         %asm {{
             cmp  #'0'
-            bcc  p8_is_symbol_start_char
+            bcc  p8s_is_symbol_start_char
             cmp  #'9'+1
-            bcs  p8_is_symbol_start_char
+            bcs  p8s_is_symbol_start_char
             lda  #1
             rts
         }}

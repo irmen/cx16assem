@@ -4,7 +4,7 @@ File-based 65c02 assembler for Commander-X16
 
 Software License: MIT open source, see file LICENSE.
 
-You'll need a very recent prog8 compiler to build the assembler from source.
+You'll need a Prog8 compiler v9.8 or later, to build the assembler from source.
 If the latest official release gives you problems compiling this program, you may have to use 
 the git master version that hasn't been officially released yet.
 
@@ -74,9 +74,6 @@ the expected result binary (crossassembled by 64tass).
 - Mnemonics matching is done via an optimal prefix-tree match routine that takes very few instructions to find the match.
 
 ## Todo
-
-- add a command to jump into the monitor (m?)
-- make the symbol hashtable not restricted to 127 entries but full 256 by @splitting it, remove the &127 from string.hash calls
 
 - add `.fill` command to fill a number of bytes, optionally with given value
 
