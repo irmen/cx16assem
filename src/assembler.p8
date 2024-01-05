@@ -35,7 +35,7 @@ main {
                     while string.isspace(@(cx16.r0))
                         cx16.r0++
                     void string.copy(cx16.r0, commandline)
-                    if not commandline[0]
+                    if commandline[0]==0
                         continue
                 }
 
@@ -43,7 +43,7 @@ main {
                 uword argptr = 0
                 if commandline[1]
                     argptr = &commandline+1
-                if commandline[1]==' ' and commandline[2]
+                if commandline[1]==' ' and commandline[2]!=0
                     argptr = &commandline+2
                 when commandline[0] {
                     '$' -> list_asm_files()
@@ -95,8 +95,8 @@ main {
     }
 
     sub cli_command_a(uword argptr, bool ask_for_output_filename) -> bool {
-        if not argptr {
-            if not previous_successful_filename[0] {
+        if argptr==0 {
+            if previous_successful_filename[0]==0 {
                 err.print("no previous file")
             } else {
                 txt.print("using previous file: ")
@@ -382,7 +382,7 @@ main {
         str output_filename = "?" * max_filename_length
         if ask_for_output_filename {
             txt.print("\nenter filename to save as (without .prg) > ")
-            if not txt.input_chars(main.start.commandline)
+            if txt.input_chars(main.start.commandline)==0
                 return
             if fileregistry.search(main.start.commandline)!=$ff {
                 err.print("name is same as one of the source files")
@@ -532,7 +532,7 @@ parser {
 
         if @(word_addrs[0])=='.'
             return process_assembler_directive(word_addrs[0], word_addrs[1])
-        if not word_addrs[1]
+        if word_addrs[1]==0
             return do_label_instr()
         if @(word_addrs[1])=='='
             return do_assign()
@@ -545,7 +545,7 @@ parser {
 
     sub do_assign() -> bool {
         ; target is in word_addrs[0], value is in word_addrs[2]   ('=' is in word_addrs[1])
-        if not word_addrs[2] {
+        if word_addrs[2]==0 {
             err.print("syntax error")
             return false
         }
@@ -561,8 +561,8 @@ parser {
                 ubyte dt = symbols_dt.dt_ubyte
                 if msb(cx16.r15)
                     dt = symbols_dt.dt_uword
-                ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, dt)
-                if not symbol_idx
+                ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, dt)        ; TODO is a boolean return value!
+                if symbol_idx==0
                     return false
             }
             return true
@@ -609,8 +609,8 @@ parser {
                 return false
             }
             if phase==1 {
-                ubyte symbol_idx = symbols.setvalue(label_ptr, output.program_counter, symbols_dt.dt_uword)
-                if not symbol_idx
+                ubyte symbol_idx = symbols.setvalue(label_ptr, output.program_counter, symbols_dt.dt_uword)     ; TODO is a boolean return value!!
+                if symbol_idx==0
                     return false
             }
         }
@@ -699,7 +699,7 @@ parser {
                     if retry
                         opcode = instructions.opcode(instruction_info_ptr, addr_mode)
 
-                    if not opcode {
+                    if opcode==0 {
                         err.print("invalid instruction and/or operand")
                         return false
                     }
@@ -854,7 +854,7 @@ parser {
                 operand++
                 operand = str_trimleft(operand)
                 length = conv.any2uword(operand)
-                if not length
+                if length==0
                     break
                 if msb(cx16.r15) {
                     err.print("value too large")
@@ -888,7 +888,7 @@ parser {
                 operand++
                 operand = str_trimleft(operand)
                 length = conv.any2uword(operand)
-                if not length
+                if length==0
                     break
                 if phase==2 {
                     output.emit(lsb(cx16.r15))

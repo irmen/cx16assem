@@ -226,7 +226,7 @@ _result     .byte 0
                 if index >= 0 {
                     uword matched = wordlist[index]
                     if matched[0]==candidate[0] and matched[1]==candidate[1] and matched[2]==candidate[2] and matched[3]==candidate[3]
-                        return index
+                        return index as ubyte
                 }
             }
         }
@@ -234,7 +234,7 @@ _result     .byte 0
     }
 
 
-    asmsub  opcode(uword instr_info_ptr @AY, ubyte addr_mode @X) clobbers(X) -> ubyte @A, ubyte @Pc {
+    asmsub  opcode(uword instr_info_ptr @AY, ubyte addr_mode @X) clobbers(X) -> ubyte @A, bool @Pc {
         ; -- input: instruction info struct ptr @AY,  desired addr_mode @X
         ;    output: opcode @A,   valid @carrybit
         %asm {{

@@ -28,7 +28,7 @@ filereader {
         txt.print(filename)
         cx16.rambank(start_bank)
         cx16.r1 = diskio.load_raw(filename, address)
-        if not cx16.r1 {
+        if cx16.r1==0 {
             err.print("load error")
             return false
         }

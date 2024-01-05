@@ -106,9 +106,9 @@ benchmark {
         txt.print_uw(total)
         txt.print("\n>> seconds:")
         float secs = current_time / 60.0
-        floats.print_f(secs)
+        floats.print(secs)
         txt.print("   mnems/sec: ")
-        floats.print_f(round(total / secs))
+        floats.print(floats.round(total / secs))
 
         txt.nl()
     }
