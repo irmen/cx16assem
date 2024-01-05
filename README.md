@@ -76,7 +76,6 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- Fix calls to symbols.setvalue / setvalue2 , they have bool returnvalue not an index number.
 - Keep current screen mode? (so it can run on composite screens)
 
 - Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 

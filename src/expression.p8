@@ -121,8 +121,8 @@ expression {
                     ; enter it in the symbol table preliminary, and assume it is a word datatype.
                     ; (if that is not correct, the symbol should be defined before use to correct this...)
                     cx16.r15 = output.program_counter  ; to avoid branch Rel errors
-                    ubyte symbol_idx = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)        ; TODO is a boolean result!!
-                    if symbol_idx==0
+                    ubyte success = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
+                    if not success
                         return instructions.am_Invalid
                     return operand_determine_abs_or_zp_addrmode(operand_ptr)
                 }

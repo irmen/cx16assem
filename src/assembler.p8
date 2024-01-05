@@ -561,9 +561,7 @@ parser {
                 ubyte dt = symbols_dt.dt_ubyte
                 if msb(cx16.r15)
                     dt = symbols_dt.dt_uword
-                ubyte symbol_idx = symbols.setvalue(word_addrs[0], cx16.r15, dt)        ; TODO is a boolean return value!
-                if symbol_idx==0
-                    return false
+                return symbols.setvalue(word_addrs[0], cx16.r15, dt)
             }
             return true
         }
@@ -609,9 +607,7 @@ parser {
                 return false
             }
             if phase==1 {
-                ubyte symbol_idx = symbols.setvalue(label_ptr, output.program_counter, symbols_dt.dt_uword)     ; TODO is a boolean return value!!
-                if symbol_idx==0
-                    return false
+                return symbols.setvalue(label_ptr, output.program_counter, symbols_dt.dt_uword)
             }
         }
         if instr_ptr {
