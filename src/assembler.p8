@@ -9,6 +9,7 @@
 %import expression
 %import errors
 %zeropage basicsafe
+%option no_sysinit
 
 main {
 
