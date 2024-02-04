@@ -86,4 +86,6 @@ the expected result binary (crossassembled by 64tass).
 
 - macros?
 
+- remove the 4 "problematic" 65C02 instructions (because of possible 65C816 cpu): SMBx RMBx BBRx BBSx  ?
+
 - A *lot* of work, so may never be realized: locally scoped labels, or at the very least a new scope for included assembly files to avoid name clashes
