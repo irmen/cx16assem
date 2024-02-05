@@ -29,7 +29,7 @@ main {
                 txt.color(13)
             txt.print("\n> ")
             txt.color(text_color)
-            if txt.input_chars(commandline) {
+            if txt.input_chars(commandline)!=0 {
                 if commandline[0] in ['>', ' ', 160] {
                     ; strip away the prompt prefix
                     cx16.r0=&commandline+1
@@ -42,18 +42,18 @@ main {
 
                 txt.print("\n\n")
                 uword argptr = 0
-                if commandline[1]
+                if commandline[1]!=0
                     argptr = &commandline+1
                 if commandline[1]==' ' and commandline[2]!=0
                     argptr = &commandline+2
                 when commandline[0] {
                     '$' -> list_asm_files()
                     'd' -> {
-                        if argptr
+                        if argptr!=0
                             display_file(argptr)
                     }
                     'e' -> {
-                        if argptr
+                        if argptr!=0
                             edit_file(argptr)
                         else
                             edit_file(0)
@@ -64,7 +64,7 @@ main {
                     'm' -> cli_command_m()
                     'x' -> cli_command_x(argptr)
                     '#' -> {
-                        if argptr {
+                        if argptr!=0 {
                             set_drivenumber(argptr[0]-'0')
                         } else {
                             txt.print("current disk drive is ")
@@ -106,7 +106,7 @@ main {
                 argptr = previous_successful_filename
             }
         }
-        if argptr {
+        if argptr!=0 {
             symbols.init()
             filereader.init()
             diskio.list_filename[0] = 0
@@ -117,9 +117,9 @@ main {
     }
 
     sub cli_command_r(uword argptr) -> bool {
-        if argptr
+        if argptr!=0
             void string.copy(argptr, diskio.list_filename)
-        if diskio.list_filename[0] {
+        if diskio.list_filename[0]!=0 {
             run_file(diskio.list_filename)
             return true
         }
@@ -171,14 +171,14 @@ main {
 
     sub self_test() {
         if(cli_command_a("test-allopcodes.asm", false)) {
-            ubyte success = false
+            bool success = false
             if output.pc_min == $0400 {
                 if output.pc_max == $05e2 {
                     cbm.SETMSG(%10000000)       ; enable kernal status messages for load
-                    if diskio.load("test-allopcodes", $0400) {
+                    if diskio.load("test-allopcodes", $0400)!=0 {
                         success = true
                         const uword check_addr = $9a00
-                        if diskio.load("test-allopcodes-check", check_addr) {
+                        if diskio.load("test-allopcodes-check", check_addr)!=0 {
                             for cx16.r1 in $0000 to $01e1 {
                                 if @($0400+cx16.r1) != @(check_addr+cx16.r1) {
                                     txt.print("error: byte ")
@@ -218,7 +218,7 @@ main {
             cbm.SETMSG(%10000000)       ; enable kernal status messages for load
             cx16.r1 = diskio.load(filename, 0)
             cbm.SETMSG(0)
-            if cx16.r1 {
+            if cx16.r1!=0 {
                 txt.nl()
                 txt.nl()
                 goto load_address
@@ -250,7 +250,7 @@ main {
         if x16edit_bank<255 {
             sys.enable_caseswitch()     ; workaround for character set issue in X16Edit 0.7.1
             ubyte filename_length = 0
-            if filename
+            if filename!=0
                 filename_length = string.length(filename)
             ubyte old_bank = cx16.getrombank()
             cx16.rombank(x16edit_bank)
@@ -302,10 +302,10 @@ main {
                 txt.print(": ")
                 txt.print(parser.input_line)
                 txt.nl()
-                if cbm.READST() & 64 {
+                if cbm.READST() & 64 !=0 {
                     break
                 }
-                if cbm.STOP2() {
+                if cbm.STOP2() !=0 {
                     err.print("break")
                     break
                 }
@@ -359,9 +359,9 @@ main {
 
     sub print_summary(uword lines, uword start_address, uword end_address) {
         txt.print("\n\n\x12complete.\x92\n\nstart address: ")
-        txt.print_uwhex(start_address, 1)
+        txt.print_uwhex(start_address, true)
         txt.print("\n  end address: ")
-        txt.print_uwhex(end_address, 1)
+        txt.print_uwhex(end_address, true)
         txt.print(" (")
         txt.print_uw(end_address-start_address)
         txt.print(" bytes)\n source lines: ")
@@ -501,11 +501,11 @@ parser {
                     txt.print_uw(filereader.get_line_nr())
                     txt.print(": ")
                     txt.print(parser.word_addrs[0])
-                    if parser.word_addrs[1] {
+                    if parser.word_addrs[1]!=0 {
                         txt.spc()
                         txt.print(parser.word_addrs[1])
                     }
-                    if parser.word_addrs[2] {
+                    if parser.word_addrs[2]!=0 {
                         txt.spc()
                         txt.print(parser.word_addrs[2])
                     }
@@ -560,7 +560,7 @@ parser {
                 output.set_pc(cx16.r15)
             } else if phase==1 {
                 ubyte dt = symbols_dt.dt_ubyte
-                if msb(cx16.r15)
+                if msb(cx16.r15)!=0
                     dt = symbols_dt.dt_uword
                 return symbols.setvalue(word_addrs[0], cx16.r15, dt)
             }
@@ -580,11 +580,11 @@ parser {
 ;        void string.lower(word_addrs[1])
 ;        void string.lower(word_addrs[2])
 
-        if word_addrs[2] {
+        if word_addrs[2]!=0 {
             label_ptr = word_addrs[0]
             instr_ptr = word_addrs[1]
             operand_ptr = word_addrs[2]
-        } else if word_addrs[1] {
+        } else if word_addrs[1]!=0 {
             if starts_with_whitespace {
                 instr_ptr = word_addrs[0]
                 operand_ptr = word_addrs[1]
@@ -592,18 +592,18 @@ parser {
                 label_ptr = word_addrs[0]
                 instr_ptr = word_addrs[1]
             }
-        } else if word_addrs[0] {
+        } else if word_addrs[0]!=0 {
             if starts_with_whitespace
                 instr_ptr = word_addrs[0]
             else
                 label_ptr = word_addrs[0]
         }
 
-        if label_ptr {
+        if label_ptr!=0 {
             uword lastlabelchar = label_ptr + string.length(label_ptr)-1
             if @(lastlabelchar) == ':'
                 @(lastlabelchar) = 0
-            if instructions.match(label_ptr) {
+            if instructions.match(label_ptr)!=0 {
                 err.print("label cannot be an instruction")
                 return false
             }
@@ -611,8 +611,8 @@ parser {
                 return symbols.setvalue(label_ptr, output.program_counter, symbols_dt.dt_uword)
             }
         }
-        if instr_ptr {
-            if operand_ptr {
+        if instr_ptr!=0 {
+            if operand_ptr!=0 {
                 if @(instr_ptr+3)==0 {
                     ; check for alternative syntax of BBR, BBS, RMB, SMB
                     uword firsttwo = peekw(instr_ptr) & $7f7f
@@ -651,11 +651,11 @@ parser {
         @(cx16.r0+1) = string.lowerchar(@(cx16.r0+1))
         @(cx16.r0+2) = string.lowerchar(@(cx16.r0+2))
         uword @zp instruction_info_ptr = instructions.match(cx16.r0)
-        if instruction_info_ptr {
+        if instruction_info_ptr!=0 {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
             ubyte @zp addr_mode = expression.parse_operand(operand_ptr, phase)
 
-            if addr_mode {
+            if addr_mode!=0 {
                 ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
                 if_cc {
                     ; most likely an invalid instruction BUT could also be a branching instruction
@@ -752,7 +752,7 @@ parser {
 
     sub calc_relative_branch_into_r14() -> bool {
         cx16.r14 = cx16.r15 - output.program_counter - 2
-        if msb(cx16.r14)  {
+        if msb(cx16.r14)!=0  {
             if cx16.r14 < $ff80 {
                 err.print("branch out of range")
                 return false
@@ -766,7 +766,7 @@ parser {
 
     sub process_assembler_directive(uword directive, uword operand) -> bool {
         ; void string.lower(directive)
-        if operand {
+        if operand!=0 {
             if string.compare(directive, ".byte")==0
                 return proces_directive_byte(operand)
             if string.compare(directive, ".word")==0
@@ -791,7 +791,7 @@ parser {
 
     sub process_directive_org(uword operand) -> bool {
         ubyte length = conv.any2uword(operand)
-        if length {
+        if length!=0 {
             output.set_pc(cx16.r15)
             return true
         }
@@ -801,7 +801,7 @@ parser {
 
     sub process_directive_fill(uword operand) -> bool {
         ubyte length = conv.any2uword(operand)
-        if length {
+        if length!=0 {
             ubyte fillvalue = 0
             uword fillsize = cx16.r15
             operand += length
@@ -810,8 +810,8 @@ parser {
                 operand++
                 operand = str_trimleft(operand)
                 length = conv.any2uword(operand)
-                if length {
-                    if msb(cx16.r15) {
+                if length!=0 {
+                    if msb(cx16.r15)!=0 {
                         err.print("value too large")
                         return false
                     }
@@ -836,8 +836,8 @@ parser {
 
     sub proces_directive_byte(uword operand) -> bool {
         ubyte length = conv.any2uword(operand)
-        if length {
-            if msb(cx16.r15) {
+        if length!=0 {
+            if msb(cx16.r15)!=0 {
                 err.print("value too large")
                 return false
             }
@@ -853,7 +853,7 @@ parser {
                 length = conv.any2uword(operand)
                 if length==0
                     break
-                if msb(cx16.r15) {
+                if msb(cx16.r15)!=0 {
                     err.print("value too large")
                     return false
                 }
@@ -872,7 +872,7 @@ parser {
 
     sub proces_directive_word(uword operand) -> bool {
         ubyte length = conv.any2uword(operand)
-        if length {
+        if length!=0 {
             if phase==2 {
                 output.emit(lsb(cx16.r15))
                 output.emit(msb(cx16.r15))
@@ -902,7 +902,7 @@ parser {
         return false
     }
 
-    sub proces_directive_str(uword operand, ubyte zeroterminated) -> bool {
+    sub proces_directive_str(uword operand, bool zeroterminated) -> bool {
         if operand[0]=='\"' {
             operand++
             ubyte char_idx=0
@@ -917,7 +917,7 @@ parser {
                         operand++
                         while @(operand+char_idx)==' '
                             char_idx++
-                        if @(operand+char_idx) and @(operand+char_idx)!=';' {
+                        if @(operand+char_idx)!=0 and @(operand+char_idx)!=';' {
                             err.print("garbage after string")
                             return false
                         }
@@ -948,11 +948,11 @@ parser {
         }
     }
 
-    sub process_directive_include(uword operand, ubyte is_incbin) -> bool {
+    sub process_directive_include(uword operand, bool is_incbin) -> bool {
         if operand[0]=='\"'
             operand++
         uword filename = operand
-        while @(operand) {
+        while @(operand)!=0 {
             if @(operand) in ['\"', '\n'] {
                 @(operand) = 0
                 break
@@ -998,7 +998,7 @@ parser {
         return false
     }
 
-    asmsub str_is1(uword st @R0, ubyte char @A) clobbers(Y) -> ubyte @A {
+    asmsub str_is1(uword st @R0, ubyte char @A) clobbers(Y) -> bool @A {
         %asm {{
             cmp  (cx16.r0)
             bne  +
@@ -1012,7 +1012,7 @@ parser {
         }}
     }
 
-    asmsub str_is2(uword st @R0, uword compare @AY) clobbers(Y) -> ubyte @A {
+    asmsub str_is2(uword st @R0, uword compare @AY) clobbers(Y) -> bool @A {
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
@@ -1021,7 +1021,7 @@ parser {
         }}
     }
 
-    asmsub str_is3(uword st @R0, uword compare @AY) clobbers(Y) -> ubyte @A {
+    asmsub str_is3(uword st @R0, uword compare @AY) clobbers(Y) -> bool @A {
         %asm {{
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1

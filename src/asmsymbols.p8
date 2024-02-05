@@ -102,7 +102,7 @@ symbols {
 
         ubyte hash = string.hash(symbol) & 127
         uword existing_entry_ptr = ht_find_entry_in_bucket(hash, symbol)
-        if existing_entry_ptr {
+        if existing_entry_ptr!=0 {
             when @(existing_entry_ptr) {
                 symbols_dt.dt_uword_placeholder, symbols_dt.dt_ubyte_placeholder -> {
                     ; update the existing entry
@@ -180,7 +180,7 @@ symbols {
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
     sub getvalue(uword symbol) -> bool {
         uword entry_ptr = ht_find_entry_in_bucket(string.hash(symbol) & 127, symbol)
-        if entry_ptr {
+        if entry_ptr!=0 {
             cx16.r1 = @(entry_ptr)
             if cx16.r1 != symbols_dt.dt_ubyte and cx16.r1 != symbols_dt.dt_uword {
                 ; must be a placeholder that is not defined yet
@@ -213,7 +213,7 @@ symbols {
         txt.print("\nsymboltable contains ")
         txt.print_uw(num_entries)
         txt.print(" entries:\n")
-        if num_entries {
+        if num_entries!=0 {
             if num_lines >= num_entries
                 num_lines = num_entries
             if num_lines != num_entries {
@@ -231,7 +231,7 @@ symbols {
 ;                txt.print_ub(bucketcount)
 ;                txt.nl()
 
-                if bucketcount {
+                if bucketcount!=0 {
                     ubyte ix
                     for ix in 0 to bucketcount-1 {
                         uword entryptr = peekw(bucket_entry_pointers + (bk as uword)*max_entries_per_bucket*2 + ix*2)

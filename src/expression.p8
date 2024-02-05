@@ -28,7 +28,7 @@ expression {
                 }
                 ; TODO parse rest of operand as an *expression* (in phase 2, should look up any symbols used)
                 parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len {
+                if parsed_len!=0 {
                     operand_ptr += parsed_len
                     if @(operand_ptr)==0 {
                         if lsbmsb=='>'
@@ -64,7 +64,7 @@ expression {
                 operand_ptr++
                 ; TODO parse rest of operand as an *expression* with closing parenthesis at the end (in phase 2, should look up any symbols used)
                 parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len 
+                if parsed_len!=0
                     return operand_determine_indirect_addrmode(operand_ptr + parsed_len)
 
                 sym_ptr = operand_ptr
@@ -84,7 +84,7 @@ expression {
                 ; address optionally followed by ,x or ,y or ,address
                 ; TODO parse rest of operand as an *expression*, optionally followed by that suffix (in phase 2, should look up any symbols used)
                 parsed_len = conv.any2uword(operand_ptr)
-                if parsed_len
+                if parsed_len!=0
                     return operand_determine_abs_or_zp_addrmode(operand_ptr + parsed_len)
                 return instructions.am_Invalid
             }
@@ -121,7 +121,7 @@ expression {
                     ; enter it in the symbol table preliminary, and assume it is a word datatype.
                     ; (if that is not correct, the symbol should be defined before use to correct this...)
                     cx16.r15 = output.program_counter  ; to avoid branch Rel errors
-                    ubyte success = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
+                    bool success = symbols.setvalue2(sym_ptr, parsed_len, cx16.r15, symbols_dt.dt_uword_placeholder)
                     if not success
                         return instructions.am_Invalid
                     return operand_determine_abs_or_zp_addrmode(operand_ptr)
@@ -166,7 +166,7 @@ expression {
     }
 
     sub operand_determine_indirect_addrmode(uword scan_ptr) -> ubyte {
-        if msb(cx16.r15) {
+        if msb(cx16.r15)!=0 {
             ; absolute indirects
             if parser.str_is1(scan_ptr, ')')
                 return instructions.am_Ind
@@ -186,7 +186,7 @@ expression {
     }
 
     sub operand_determine_abs_or_zp_addrmode(uword scan_ptr) -> ubyte {
-        if msb(cx16.r15) {
+        if msb(cx16.r15)!=0 {
             ; word value, so absolute or abs indexed
             if @(scan_ptr)==0
                 return instructions.am_Abs
@@ -216,7 +216,7 @@ expression {
 ;            return true
 ;        return is_symbol_start_char(chr)
 ;    }
-    asmsub is_symbol_char(ubyte chr @A) -> ubyte @A {
+    asmsub is_symbol_char(ubyte chr @A) -> bool @A {
         %asm {{
             cmp  #'0'
             bcc  p8s_is_symbol_start_char
@@ -235,7 +235,7 @@ expression {
 ;            return true
 ;        return chr=='.' or chr=='@'
 ;    }
-    asmsub is_symbol_start_char(ubyte chr @A) -> ubyte @A {
+    asmsub is_symbol_start_char(ubyte chr @A) -> bool @A {
         %asm {{
             cmp  #'.'
             beq  _yes

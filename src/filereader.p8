@@ -165,7 +165,7 @@ _return     ; remember the line pointer for next call
         }}
         line_ptrs[file_stack_ptr] = cx16.r0
         current_lines[file_stack_ptr]++
-        return cx16.r1L
+        return cx16.r1L as bool
     }
 
     ; returns true if the file's bytes can be accessed via next_byte(), false otherwise
