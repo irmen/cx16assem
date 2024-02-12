@@ -22,6 +22,9 @@ class AddrMode(IntEnum):
     IaX = 16
 
 
+# NOTE:  SMBx RMBx BBRx BBSx   instructions have been removed
+# Even though the w65c02 supports these, the Commander X16 can also be fitted
+# with a 65816 cpu and that one DOES NOT support those niche instructions.
 AllInstructions = [
     (0x00, "brk", AddrMode.Imp),
     (0x01, "ora", AddrMode.IzX),
@@ -30,7 +33,7 @@ AllInstructions = [
     (0x04, "tsb", AddrMode.Zp),
     (0x05, "ora", AddrMode.Zp),
     (0x06, "asl", AddrMode.Zp),
-    (0x07, "rmb0", AddrMode.Zp),
+    (0x07, "rmb0", AddrMode.Zp),    # problematic
     (0x08, "php", AddrMode.Imp),
     (0x09, "ora", AddrMode.Imm),
     (0x0a, "asl", AddrMode.Acc),
@@ -38,7 +41,7 @@ AllInstructions = [
     (0x0c, "tsb", AddrMode.Abs),
     (0x0d, "ora", AddrMode.Abs),
     (0x0e, "asl", AddrMode.Abs),
-    (0x0f, "bbr0", AddrMode.Zpr),
+    (0x0f, "bbr0", AddrMode.Zpr),    # problematic
     (0x10, "bpl", AddrMode.Rel),
     (0x11, "ora", AddrMode.IzY),
     (0x12, "ora", AddrMode.Izp),
@@ -46,7 +49,7 @@ AllInstructions = [
     (0x14, "trb", AddrMode.Zp),
     (0x15, "ora", AddrMode.ZpX),
     (0x16, "asl", AddrMode.ZpX),
-    (0x17, "rmb1", AddrMode.Zp),
+    (0x17, "rmb1", AddrMode.Zp),    # problematic
     (0x18, "clc", AddrMode.Imp),
     (0x19, "ora", AddrMode.AbsY),
     (0x1a, "inc", AddrMode.Acc),
@@ -54,7 +57,7 @@ AllInstructions = [
     (0x1c, "trb", AddrMode.Abs),
     (0x1d, "ora", AddrMode.AbsX),
     (0x1e, "asl", AddrMode.AbsX),
-    (0x1f, "bbr1", AddrMode.Zpr),
+    (0x1f, "bbr1", AddrMode.Zpr),    # problematic
     (0x20, "jsr", AddrMode.Abs),
     (0x21, "and", AddrMode.IzX),
     (0x22, "nop", AddrMode.Imm),
@@ -62,7 +65,7 @@ AllInstructions = [
     (0x24, "bit", AddrMode.Zp),
     (0x25, "and", AddrMode.Zp),
     (0x26, "rol", AddrMode.Zp),
-    (0x27, "rmb2", AddrMode.Zp),
+    (0x27, "rmb2", AddrMode.Zp),    # problematic
     (0x28, "plp", AddrMode.Imp),
     (0x29, "and", AddrMode.Imm),
     (0x2a, "rol", AddrMode.Acc),
@@ -70,7 +73,7 @@ AllInstructions = [
     (0x2c, "bit", AddrMode.Abs),
     (0x2d, "and", AddrMode.Abs),
     (0x2e, "rol", AddrMode.Abs),
-    (0x2f, "bbr2", AddrMode.Zpr),
+    (0x2f, "bbr2", AddrMode.Zpr),    # problematic
     (0x30, "bmi", AddrMode.Rel),
     (0x31, "and", AddrMode.IzY),
     (0x32, "and", AddrMode.Izp),
@@ -78,7 +81,7 @@ AllInstructions = [
     (0x34, "bit", AddrMode.ZpX),
     (0x35, "and", AddrMode.ZpX),
     (0x36, "rol", AddrMode.ZpX),
-    (0x37, "rmb3", AddrMode.Zp),
+    (0x37, "rmb3", AddrMode.Zp),    # problematic
     (0x38, "sec", AddrMode.Imp),
     (0x39, "and", AddrMode.AbsY),
     (0x3a, "dec", AddrMode.Acc),
@@ -86,7 +89,7 @@ AllInstructions = [
     (0x3c, "bit", AddrMode.AbsX),
     (0x3d, "and", AddrMode.AbsX),
     (0x3e, "rol", AddrMode.AbsX),
-    (0x3f, "bbr3", AddrMode.Zpr),
+    (0x3f, "bbr3", AddrMode.Zpr),    # problematic
     (0x40, "rti", AddrMode.Imp),
     (0x41, "eor", AddrMode.IzX),
     (0x42, "nop", AddrMode.Imm),
@@ -94,7 +97,7 @@ AllInstructions = [
     (0x44, "nop", AddrMode.Zp),
     (0x45, "eor", AddrMode.Zp),
     (0x46, "lsr", AddrMode.Zp),
-    (0x47, "rmb4", AddrMode.Zp),
+    (0x47, "rmb4", AddrMode.Zp),    # problematic
     (0x48, "pha", AddrMode.Imp),
     (0x49, "eor", AddrMode.Imm),
     (0x4a, "lsr", AddrMode.Acc),
@@ -102,7 +105,7 @@ AllInstructions = [
     (0x4c, "jmp", AddrMode.Abs),
     (0x4d, "eor", AddrMode.Abs),
     (0x4e, "lsr", AddrMode.Abs),
-    (0x4f, "bbr4", AddrMode.Zpr),
+    (0x4f, "bbr4", AddrMode.Zpr),    # problematic
     (0x50, "bvc", AddrMode.Rel),
     (0x51, "eor", AddrMode.IzY),
     (0x52, "eor", AddrMode.Izp),
@@ -110,7 +113,7 @@ AllInstructions = [
     (0x54, "nop", AddrMode.ZpX),
     (0x55, "eor", AddrMode.ZpX),
     (0x56, "lsr", AddrMode.ZpX),
-    (0x57, "rmb5", AddrMode.Zp),
+    (0x57, "rmb5", AddrMode.Zp),    # problematic
     (0x58, "cli", AddrMode.Imp),
     (0x59, "eor", AddrMode.AbsY),
     (0x5a, "phy", AddrMode.Imp),
@@ -118,7 +121,7 @@ AllInstructions = [
     (0x5c, "nop", AddrMode.Abs),
     (0x5d, "eor", AddrMode.AbsX),
     (0x5e, "lsr", AddrMode.AbsX),
-    (0x5f, "bbr5", AddrMode.Zpr),
+    (0x5f, "bbr5", AddrMode.Zpr),    # problematic
     (0x60, "rts", AddrMode.Imp),
     (0x61, "adc", AddrMode.IzX),
     (0x62, "nop", AddrMode.Imm),
@@ -126,7 +129,7 @@ AllInstructions = [
     (0x64, "stz", AddrMode.Zp),
     (0x65, "adc", AddrMode.Zp),
     (0x66, "ror", AddrMode.Zp),
-    (0x67, "rmb6", AddrMode.Zp),
+    (0x67, "rmb6", AddrMode.Zp),    # problematic
     (0x68, "pla", AddrMode.Imp),
     (0x69, "adc", AddrMode.Imm),
     (0x6a, "ror", AddrMode.Acc),
@@ -134,7 +137,7 @@ AllInstructions = [
     (0x6c, "jmp", AddrMode.Ind),
     (0x6d, "adc", AddrMode.Abs),
     (0x6e, "ror", AddrMode.Abs),
-    (0x6f, "bbr6", AddrMode.Zpr),
+    (0x6f, "bbr6", AddrMode.Zpr),    # problematic
     (0x70, "bvs", AddrMode.Rel),
     (0x71, "adc", AddrMode.IzY),
     (0x72, "adc", AddrMode.Izp),
@@ -142,7 +145,7 @@ AllInstructions = [
     (0x74, "stz", AddrMode.ZpX),
     (0x75, "adc", AddrMode.ZpX),
     (0x76, "ror", AddrMode.ZpX),
-    (0x77, "rmb7", AddrMode.Zp),
+    (0x77, "rmb7", AddrMode.Zp),    # problematic
     (0x78, "sei", AddrMode.Imp),
     (0x79, "adc", AddrMode.AbsY),
     (0x7a, "ply", AddrMode.Imp),
@@ -150,7 +153,7 @@ AllInstructions = [
     (0x7c, "jmp", AddrMode.IaX),
     (0x7d, "adc", AddrMode.AbsX),
     (0x7e, "ror", AddrMode.AbsX),
-    (0x7f, "bbr7", AddrMode.Zpr),
+    (0x7f, "bbr7", AddrMode.Zpr),    # problematic
     (0x80, "bra", AddrMode.Rel),
     (0x81, "sta", AddrMode.IzX),
     (0x82, "nop", AddrMode.Imm),
@@ -158,7 +161,7 @@ AllInstructions = [
     (0x84, "sty", AddrMode.Zp),
     (0x85, "sta", AddrMode.Zp),
     (0x86, "stx", AddrMode.Zp),
-    (0x87, "smb0", AddrMode.Zp),
+    (0x87, "smb0", AddrMode.Zp),    # problematic
     (0x88, "dey", AddrMode.Imp),
     (0x89, "bit", AddrMode.Imm),
     (0x8a, "txa", AddrMode.Imp),
@@ -166,7 +169,7 @@ AllInstructions = [
     (0x8c, "sty", AddrMode.Abs),
     (0x8d, "sta", AddrMode.Abs),
     (0x8e, "stx", AddrMode.Abs),
-    (0x8f, "bbs0", AddrMode.Zpr),
+    (0x8f, "bbs0", AddrMode.Zpr),    # problematic
     (0x90, "bcc", AddrMode.Rel),
     (0x91, "sta", AddrMode.IzY),
     (0x92, "sta", AddrMode.Izp),
@@ -174,7 +177,7 @@ AllInstructions = [
     (0x94, "sty", AddrMode.ZpX),
     (0x95, "sta", AddrMode.ZpX),
     (0x96, "stx", AddrMode.ZpY),
-    (0x97, "smb1", AddrMode.Zp),
+    (0x97, "smb1", AddrMode.Zp),    # problematic
     (0x98, "tya", AddrMode.Imp),
     (0x99, "sta", AddrMode.AbsY),
     (0x9a, "txs", AddrMode.Imp),
@@ -182,7 +185,7 @@ AllInstructions = [
     (0x9c, "stz", AddrMode.Abs),
     (0x9d, "sta", AddrMode.AbsX),
     (0x9e, "stz", AddrMode.AbsX),
-    (0x9f, "bbs1", AddrMode.Zpr),
+    (0x9f, "bbs1", AddrMode.Zpr),    # problematic
     (0xa0, "ldy", AddrMode.Imm),
     (0xa1, "lda", AddrMode.IzX),
     (0xa2, "ldx", AddrMode.Imm),
@@ -190,7 +193,7 @@ AllInstructions = [
     (0xa4, "ldy", AddrMode.Zp),
     (0xa5, "lda", AddrMode.Zp),
     (0xa6, "ldx", AddrMode.Zp),
-    (0xa7, "smb2", AddrMode.Zp),
+    (0xa7, "smb2", AddrMode.Zp),    # problematic
     (0xa8, "tay", AddrMode.Imp),
     (0xa9, "lda", AddrMode.Imm),
     (0xaa, "tax", AddrMode.Imp),
@@ -198,7 +201,7 @@ AllInstructions = [
     (0xac, "ldy", AddrMode.Abs),
     (0xad, "lda", AddrMode.Abs),
     (0xae, "ldx", AddrMode.Abs),
-    (0xaf, "bbs2", AddrMode.Zpr),
+    (0xaf, "bbs2", AddrMode.Zpr),    # problematic
     (0xb0, "bcs", AddrMode.Rel),
     (0xb1, "lda", AddrMode.IzY),
     (0xb2, "lda", AddrMode.Izp),
@@ -206,7 +209,7 @@ AllInstructions = [
     (0xb4, "ldy", AddrMode.ZpX),
     (0xb5, "lda", AddrMode.ZpX),
     (0xb6, "ldx", AddrMode.ZpY),
-    (0xb7, "smb3", AddrMode.Zp),
+    (0xb7, "smb3", AddrMode.Zp),    # problematic
     (0xb8, "clv", AddrMode.Imp),
     (0xb9, "lda", AddrMode.AbsY),
     (0xba, "tsx", AddrMode.Imp),
@@ -214,7 +217,7 @@ AllInstructions = [
     (0xbc, "ldy", AddrMode.AbsX),
     (0xbd, "lda", AddrMode.AbsX),
     (0xbe, "ldx", AddrMode.AbsY),
-    (0xbf, "bbs3", AddrMode.Zpr),
+    (0xbf, "bbs3", AddrMode.Zpr),    # problematic
     (0xc0, "cpy", AddrMode.Imm),
     (0xc1, "cmp", AddrMode.IzX),
     (0xc2, "nop", AddrMode.Imm),
@@ -222,7 +225,7 @@ AllInstructions = [
     (0xc4, "cpy", AddrMode.Zp),
     (0xc5, "cmp", AddrMode.Zp),
     (0xc6, "dec", AddrMode.Zp),
-    (0xc7, "smb4", AddrMode.Zp),
+    (0xc7, "smb4", AddrMode.Zp),    # problematic
     (0xc8, "iny", AddrMode.Imp),
     (0xc9, "cmp", AddrMode.Imm),
     (0xca, "dex", AddrMode.Imp),
@@ -230,7 +233,7 @@ AllInstructions = [
     (0xcc, "cpy", AddrMode.Abs),
     (0xcd, "cmp", AddrMode.Abs),
     (0xce, "dec", AddrMode.Abs),
-    (0xcf, "bbs4", AddrMode.Zpr),
+    (0xcf, "bbs4", AddrMode.Zpr),    # problematic
     (0xd0, "bne", AddrMode.Rel),
     (0xd1, "cmp", AddrMode.IzY),
     (0xd2, "cmp", AddrMode.Izp),
@@ -238,7 +241,7 @@ AllInstructions = [
     (0xd4, "nop", AddrMode.ZpX),
     (0xd5, "cmp", AddrMode.ZpX),
     (0xd6, "dec", AddrMode.ZpX),
-    (0xd7, "smb5", AddrMode.Zp),
+    (0xd7, "smb5", AddrMode.Zp),    # problematic
     (0xd8, "cld", AddrMode.Imp),
     (0xd9, "cmp", AddrMode.AbsY),
     (0xda, "phx", AddrMode.Imp),
@@ -246,7 +249,7 @@ AllInstructions = [
     (0xdc, "nop", AddrMode.Abs),
     (0xdd, "cmp", AddrMode.AbsX),
     (0xde, "dec", AddrMode.AbsX),
-    (0xdf, "bbs5", AddrMode.Zpr),
+    (0xdf, "bbs5", AddrMode.Zpr),    # problematic
     (0xe0, "cpx", AddrMode.Imm),
     (0xe1, "sbc", AddrMode.IzX),
     (0xe2, "nop", AddrMode.Imm),
@@ -254,7 +257,7 @@ AllInstructions = [
     (0xe4, "cpx", AddrMode.Zp),
     (0xe5, "sbc", AddrMode.Zp),
     (0xe6, "inc", AddrMode.Zp),
-    (0xe7, "smb6", AddrMode.Zp),
+    (0xe7, "smb6", AddrMode.Zp),    # problematic
     (0xe8, "inx", AddrMode.Imp),
     (0xe9, "sbc", AddrMode.Imm),
     (0xea, "nop", AddrMode.Imp),
@@ -262,7 +265,7 @@ AllInstructions = [
     (0xec, "cpx", AddrMode.Abs),
     (0xed, "sbc", AddrMode.Abs),
     (0xee, "inc", AddrMode.Abs),
-    (0xef, "bbs6", AddrMode.Zpr),
+    (0xef, "bbs6", AddrMode.Zpr),    # problematic
     (0xf0, "beq", AddrMode.Rel),
     (0xf1, "sbc", AddrMode.IzY),
     (0xf2, "sbc", AddrMode.Izp),
@@ -270,7 +273,7 @@ AllInstructions = [
     (0xf4, "nop", AddrMode.ZpX),
     (0xf5, "sbc", AddrMode.ZpX),
     (0xf6, "inc", AddrMode.ZpX),
-    (0xf7, "smb7", AddrMode.Zp),
+    (0xf7, "smb7", AddrMode.Zp),    # problematic
     (0xf8, "sed", AddrMode.Imp),
     (0xf9, "sbc", AddrMode.AbsY),
     (0xfa, "plx", AddrMode.Imp),
@@ -281,9 +284,19 @@ AllInstructions = [
     (0xff, "bbs7", AddrMode.Zpr)
 ]
 
+problematic_instructions = {
+    "smb0", "smb1", "smb2", "smb3", "smb4", "smb5", "smb6", "smb7",
+    "rmb0", "rmb1", "rmb2", "rmb3", "rmb4", "rmb5", "rmb6", "rmb7",
+    "bbr0", "bbr1", "bbr2", "bbr3", "bbr4", "bbr5", "bbr6", "bbr7",
+    "bbs0", "bbs1", "bbs2", "bbs3", "bbs4", "bbs5", "bbs6", "bbs7"
+}
+
 # NOP is weird, it is all over the place.
 # For the 'common' immediate NOP, keep only the $EA opcode (this was the original NOP on the 6502)
-Instructions = [ins for ins in AllInstructions if ins[1] != "nop"] + [(0xea, "nop", AddrMode.Imp)]
+Instructions = ([ins for ins in AllInstructions
+                    if ins[1] != "nop"
+                    and ins[1] not in problematic_instructions]
+                + [(0xea, "nop", AddrMode.Imp)])
 
 InstructionsByName = {}
 for ins in Instructions:
@@ -376,20 +389,21 @@ def generate_mnemonics_parser_treematch():
 
     def determine_mnemonics():
         mnemonics = list(sorted(set(ins[1] for ins in Instructions)))
-
         cnt = Counter()
         for opcode, amount in opcode_occurrences:
             cnt[AllInstructions[opcode][1]] += amount
         cnt["nop"] = 13
         cnt["tsb"] = 13
 
-        four_letter_mnemonics = list(sorted([ins[1] for ins in AllInstructions if len(ins[1]) > 3]))
+        four_letter_mnemonics = list(sorted([ins[1] for ins in AllInstructions if len(ins[1]) > 3 and ins[1] not in problematic_instructions]))
+        assert len(four_letter_mnemonics)==0
         for ins4 in four_letter_mnemonics:
             del cnt[ins4]
             cnt[ins4] = 1
-        mnem2 = [c[0] for c in cnt.most_common()]
+        mnem2 = [c[0] for c in cnt.most_common() if c[0] not in problematic_instructions]
         if len(mnem2) != len(mnemonics):
-            raise ValueError("mnem count mismatch")
+            raise ValueError(f"mnem count mismatch {len(mnem2)} vs {len(mnemonics)}")
+        assert len(set(mnem2).intersection(problematic_instructions)) == 0
         return mnem2
 
     mnemonics = determine_mnemonics()
@@ -406,21 +420,18 @@ def generate_mnemonics_parser_treematch():
         thirdletters = {m[2]: 0 for m in mnemonics if m[0] == firstletter and m[1] == secondletter}
         return thirdletters.keys()
 
-    def fourth_letters(firstletter, secondletter, thirdletter):
-        longmnem = [m for m in mnemonics if len(m) > 3]
-        fourthletters = {m[3]: 0 for m in longmnem if
-                         m[0] == firstletter and m[1] == secondletter and m[2] == thirdletter}
-        return fourthletters.keys()
+    # def fourth_letters(firstletter, secondletter, thirdletter):
+    #     longmnem = [m for m in mnemonics if len(m) > 3]
+    #     fourthletters = {m[3]: 0 for m in longmnem if
+    #                      m[0] == firstletter and m[1] == secondletter and m[2] == thirdletter}
+    #     return fourthletters.keys()
 
     def make_tree():
         tree = {}
         for first in first_letters():
             tree[first] = {
                 secondletter: {
-                    thirdletter: {
-                        fourthletter: {}
-                        for fourthletter in fourth_letters(first, secondletter, thirdletter)
-                    }
+                    thirdletter: {}
                     for thirdletter in third_letters(first, secondletter)
                 }
                 for secondletter in second_letters(first)
@@ -431,7 +442,7 @@ def generate_mnemonics_parser_treematch():
 
     print("gen_get_opcode_info    .proc")
     print("_mnem_fourth_letter = cx16.r4")
-    print("_mnem_fifth_letter = cx16.r5")
+    # print("_mnem_fifth_letter = cx16.r5")
     for first in tree:
         print("    cmp  #'%s'" % first)
         print("    bne  _not_%s" % first)
@@ -465,39 +476,39 @@ def generate_mnemonics_parser_treematch():
     # bbr[0-7]
     # rmb[0-7]
     # bbs[0-7]
-    for fourlettermnemonic in ["smb", "bbr", "rmb", "bbs"]:
-        print("_check_%s" % fourlettermnemonic)
-        print("    lda  #<_tab_%s" % fourlettermnemonic)
-        print("    ldy  #>_tab_%s" % fourlettermnemonic)
-        print("""    sta  P8ZP_SCRATCH_W2
-        sty  P8ZP_SCRATCH_W2+1
-        bra  _check4""")
+    # for fourlettermnemonic in ["smb", "bbr", "rmb", "bbs"]:
+    #     print("_check_%s" % fourlettermnemonic)
+    #     print("    lda  #<_tab_%s" % fourlettermnemonic)
+    #     print("    ldy  #>_tab_%s" % fourlettermnemonic)
+    #     print("""    sta  P8ZP_SCRATCH_W2
+    #     sty  P8ZP_SCRATCH_W2+1
+    #     bra  _check4""")
 
-    print("""_check4
-        lda  _mnem_fourth_letter
-        cmp  #'0'
-        bcc  _invalid
-        cmp  #'8'
-        bcs  _invalid
-        lda  _mnem_fifth_letter     ; must have no fifth letter
-        bne  _invalid
-        lda  _mnem_fourth_letter
-        sec
-        sbc  #'0'
-        asl  a
-        tay
-        lda  (P8ZP_SCRATCH_W2),y
-        pha
-        iny
-        lda  (P8ZP_SCRATCH_W2),y
-        tay
-        pla
-        rts""")
+    # print("""_check4
+    #     lda  _mnem_fourth_letter
+    #     cmp  #'0'
+    #     bcc  _invalid
+    #     cmp  #'8'
+    #     bcs  _invalid
+    #     lda  _mnem_fifth_letter     ; must have no fifth letter
+    #     bne  _invalid
+    #     lda  _mnem_fourth_letter
+    #     sec
+    #     sbc  #'0'
+    #     asl  a
+    #     tay
+    #     lda  (P8ZP_SCRATCH_W2),y
+    #     pha
+    #     iny
+    #     lda  (P8ZP_SCRATCH_W2),y
+    #     tay
+    #     pla
+    #     rts""")
 
-    for fourlettermnemonic in ["smb", "bbr", "rmb", "bbs"]:
-        print("_tab_%s" % fourlettermnemonic)
-        for ii in "01234567":
-            print("    .word   i_%s%s" % (fourlettermnemonic, ii))
+    # for fourlettermnemonic in ["smb", "bbr", "rmb", "bbs"]:
+    #     print("_tab_%s" % fourlettermnemonic)
+    #     for ii in "01234567":
+    #         print("    .word   i_%s%s" % (fourlettermnemonic, ii))
 
     print("    .pend")
 

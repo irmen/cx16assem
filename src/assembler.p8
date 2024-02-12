@@ -172,14 +172,15 @@ main {
     sub self_test() {
         if(cli_command_a("test-allopcodes.asm", false)) {
             bool success = false
+            const uword expected_bin_size = 396
             if output.pc_min == $0400 {
-                if output.pc_max == $05e2 {
+                if output.pc_max == $0400+expected_bin_size {
                     cbm.SETMSG(%10000000)       ; enable kernal status messages for load
                     if diskio.load("test-allopcodes", $0400)!=0 {
                         success = true
                         const uword check_addr = $9a00
                         if diskio.load("test-allopcodes-check", check_addr)!=0 {
-                            for cx16.r1 in $0000 to $01e1 {
+                            for cx16.r1 in $0000 to expected_bin_size-1 {
                                 if @($0400+cx16.r1) != @(check_addr+cx16.r1) {
                                     txt.print("error: byte ")
                                     txt.print_uwhex(cx16.r1, true)
@@ -197,7 +198,7 @@ main {
                     diskio.delete("test-allopcodes")
                 }
                 else
-                    err.print("end should be $05e2")
+                    err.print("binary output size mismatch")
             } else
                 err.print("start should be $0400")
 
@@ -612,36 +613,10 @@ parser {
             }
         }
         if instr_ptr!=0 {
-            if operand_ptr!=0 {
-                if @(instr_ptr+3)==0 {
-                    ; check for alternative syntax of BBR, BBS, RMB, SMB
-                    uword firsttwo = peekw(instr_ptr) & $7f7f
-                    ubyte third = @(instr_ptr+2) & $7f
-                    if firsttwo == $4242 {
-                        if third=='r' or third=='s'
-                            fixup_bbr_bbs_rmb_smb()     ; BBR/BBS
-                    }
-                    else if firsttwo == $4d52 {
-                        if third=='b'
-                            fixup_bbr_bbs_rmb_smb()     ; RMB
-                    }
-                    else if firsttwo == $4d53 {
-                        if third=='b'
-                            fixup_bbr_bbs_rmb_smb()     ; SMB
-                    }
-                }
-            }
             return assemble_instruction(instr_ptr, operand_ptr)
         }
 
         return true     ; empty line
-
-        sub fixup_bbr_bbs_rmb_smb() {
-            ; rewrite syntax:  BBR  0,$xx,label   into:  BBR0  $xx,label
-            @(instr_ptr+3) = @(operand_ptr)
-            @(instr_ptr+4) = 0
-            operand_ptr += 2
-        }
     }
 
     sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> bool {
@@ -699,29 +674,6 @@ parser {
                     if opcode==0 {
                         err.print("invalid instruction and/or operand")
                         return false
-                    }
-                }
-
-                if phase==2 {
-                    if addr_mode==instructions.am_Zpr {
-                        ; instructions like BBR4 $zp,$aaaa   (dual-operand)
-                        ubyte comma_idx = string.find(operand_ptr,',')
-                        if_cs {
-                            cx16.r13 = cx16.r15
-                            if expression.parse_operand(operand_ptr+comma_idx+1, phase) != instructions.am_Invalid {
-                                output.program_counter++
-                                if not calc_relative_branch_into_r14()
-                                    return false
-                                output.program_counter--
-                                cx16.r15 = (cx16.r14 << 8) | lsb(cx16.r13)
-                            } else {
-                                err.print("invalid operand for zpr")
-                                return false
-                            }
-                        } else {
-                            err.print("invalid operand for zpr")
-                            return false
-                        }
                     }
                 }
 

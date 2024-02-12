@@ -202,10 +202,6 @@ expression {
                 return instructions.am_ZpX
             if parser.str_is2(scan_ptr, ",y")
                 return instructions.am_ZpY
-            if @(scan_ptr)==',' {
-                ; assume BBR $zp,$aaaa or BBS $zp,$aaaa
-                return instructions.am_Zpr
-            }
         }
         return instructions.am_Invalid
     }

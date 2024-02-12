@@ -4,7 +4,7 @@ File-based 65c02 assembler for Commander-X16
 
 Software License: MIT open source, see file LICENSE.
 
-You'll need a Prog8 compiler v9.8 or later, to build the assembler from source.
+You'll need a recent Prog8 compiler, to build the assembler from source.
 If the latest official release gives you problems compiling this program, you may have to use 
 the git master version that hasn't been officially released yet.
 
@@ -41,6 +41,7 @@ the expected result binary (crossassembled by 64tass).
 
 ## Features
 
+- all w65c02 instructions recognised, except the 4 problematic ones  SMBx RMBx BBRx BBSx (due to X16 65816 cpu support)
 - reads source files (any size) from disk  (sdcard)
 - write resulting output directly as PRG file to disk (sdcard)
 - can assemble to any system memory location 
@@ -78,14 +79,12 @@ the expected result binary (crossassembled by 64tass).
 
 - Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 
   More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack) so may never be supported.
-  (https://en.wikipedia.org/wiki/Shunting_yard_algorithm ?)
+  (although https://en.wikipedia.org/wiki/Shunting_yard_algorithm ?)
 
-- relative labels (+/++/-/--)
+- relative labels (+/++/-/--) or rather local labels @1 @2 etc (ca65 style)
 
 - better error descriptions?
 
 - macros?
-
-- remove the 4 "problematic" 65C02 instructions (because of possible 65C816 cpu): SMBx RMBx BBRx BBSx  ?
 
 - A *lot* of work, so may never be realized: locally scoped labels, or at the very least a new scope for included assembly files to avoid name clashes
