@@ -306,7 +306,7 @@ main {
                 if cbm.READST() & 64 !=0 {
                     break
                 }
-                if cbm.STOP2() !=0 {
+                if cbm.STOP2() {
                     err.print("break")
                     break
                 }
