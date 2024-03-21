@@ -75,6 +75,7 @@ filereader {
     uword[fileregistry.max_num_files] @split end_ptrs
     ubyte[fileregistry.max_num_files] end_banks
     uword[fileregistry.max_num_files] @split current_lines
+    bool[fileregistry.max_num_files] eofs
     ubyte file_stack_ptr
 
     sub get_line_nr() -> uword {
@@ -102,13 +103,13 @@ filereader {
         end_ptrs[file_stack_ptr] = fileregistry.file_end_addresses[index]
         end_banks[file_stack_ptr] = fileregistry.file_end_banks[index]
         current_lines[file_stack_ptr] = 0
-        lines_exhausted = false
+        eofs[file_stack_ptr] = false
         return true
     }
 
-    bool lines_exhausted
-
     sub next_line(uword buffer) -> bool {
+        bool lines_exhausted = eofs[file_stack_ptr]
+
         ; copies the next line from line_ptr into buffer
         ; stops at 0 (EOF), or 10/13 (EOL).
         ; returns true if success, false if no line was copied (EOF).
@@ -163,6 +164,7 @@ _return     ; remember the line pointer for next call
             sta  cx16.r1L       ; return value t/f
             plx
         }}
+        eofs[file_stack_ptr] = lines_exhausted
         line_ptrs[file_stack_ptr] = cx16.r0
         current_lines[file_stack_ptr]++
         return cx16.r1L as bool
