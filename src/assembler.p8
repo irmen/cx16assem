@@ -19,6 +19,7 @@ main {
 
     sub start() {
         str commandline = "?" * max_filename_length
+        ;; diskio.fastmode(3)      ; fast loads+saves
         print_intro()
         previous_successful_filename[0] = 0
         diskio.list_filename[0] = 0
@@ -306,7 +307,8 @@ main {
                 if cbm.READST() & 64 !=0 {
                     break
                 }
-                if cbm.STOP2() {
+                void cbm.STOP()
+                if_z {
                     err.print("break")
                     break
                 }
