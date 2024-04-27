@@ -633,7 +633,8 @@ parser {
             ubyte @zp addr_mode = expression.parse_operand(operand_ptr, phase)
 
             if addr_mode!=0 {
-                ubyte opcode = instructions.opcode(instruction_info_ptr, addr_mode)
+                ubyte opcode
+                opcode, void = instructions.opcode(instruction_info_ptr, addr_mode)
                 if_cc {
                     ; most likely an invalid instruction BUT could also be a branching instruction
                     ; that needs its "absolute" operand recalculated as relative.
@@ -671,7 +672,7 @@ parser {
                     }
 
                     if retry
-                        opcode = instructions.opcode(instruction_info_ptr, addr_mode)
+                        opcode,void = instructions.opcode(instruction_info_ptr, addr_mode)
 
                     if opcode==0 {
                         err.print("invalid instruction and/or operand")
@@ -937,7 +938,7 @@ parser {
                         return false
                     }
                     repeat {
-                        cx16.r0L = filereader.next_byte()
+                        cx16.r0L, void = filereader.next_byte()
                         if_cs {
                             filereader.pop_file()
                             return true
