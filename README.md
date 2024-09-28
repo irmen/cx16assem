@@ -77,16 +77,14 @@ the expected result binary (crossassembled by 64tass).
 
 ## Todo
 
-- BUG? multiple .include don't work?  (github issue)
-
 - Simple expressions of just 2 operands and an operator (+, -, bitwise and/or/xor, bitwise shifts, maybe simple multiplication). 
-  More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack) so may never be supported.
+  More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack).
   (although https://en.wikipedia.org/wiki/Shunting_yard_algorithm ?)
-
+  
 - relative labels (+/++/-/--) or rather local labels @1 @2 etc (ca65 style)
 
-- better error descriptions?
+- better error descriptions
+  
+- macros
 
-- macros?
-
-- A *lot* of work, so may never be realized: locally scoped labels, or at the very least a new scope for included assembly files to avoid name clashes
+- locally scoped labels, or at the very least a new scope for included assembly files to avoid name clashes
