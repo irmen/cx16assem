@@ -421,9 +421,9 @@ main {
                 goto io_error
 
             uword remaining = end_address-start_address
-            ubyte bnk = output.start_output_bank
+            ubyte bank = output.start_output_bank
             repeat {
-                cx16.rambank(bnk)
+                cx16.rambank(bank)
                 uword savesize = remaining
                 if savesize > 8192
                     savesize = 8192
@@ -432,7 +432,7 @@ main {
                 remaining -= savesize
                 if remaining==0
                     break
-                bnk++
+                bank++
             }
 
             diskio.f_close_w()
