@@ -1,3 +1,4 @@
+%import strings
 %import textio
 %import errors
 
@@ -95,12 +96,12 @@ symbols {
     ;       datatype = one of the datatype constants for this value.
     ; RETURNS: success boolean.
     sub setvalue(uword symbol, uword value, ubyte datatype) -> bool {
-        if string.length(symbol) > max_name_len {
+        if strings.length(symbol) > max_name_len {
             err.print("hash error name too long")
             return false
         }
 
-        ubyte hash = string.hash(symbol) & 127
+        ubyte hash = strings.hash(symbol) & 127
         uword existing_entry_ptr = ht_find_entry_in_bucket(hash, symbol)
         if existing_entry_ptr!=0 {
             when @(existing_entry_ptr) {
@@ -136,11 +137,11 @@ symbols {
     ;       datatype = one of the datatype constants for the value.
     ; RETURNS: success boolean.
     sub setvalue_new(uword symbol, uword value, ubyte datatype) -> bool {
-        if string.length(symbol) > max_name_len {
+        if strings.length(symbol) > max_name_len {
             err.print("hash error name too long")
             return false
         }
-        return ht_add_entry(string.hash(symbol) & 127, symbol, value, datatype)
+        return ht_add_entry(strings.hash(symbol) & 127, symbol, value, datatype)
     }
 
     ; SUBROUTINE: setvalue2
@@ -179,7 +180,7 @@ symbols {
     ; RETURNS: success boolean. If successful,
     ;          the symbol's value is returned in cx16.r0, and its datatype in cx16.r1.
     sub getvalue(uword symbol) -> bool {
-        uword entry_ptr = ht_find_entry_in_bucket(string.hash(symbol) & 127, symbol)
+        uword entry_ptr = ht_find_entry_in_bucket(strings.hash(symbol) & 127, symbol)
         if entry_ptr!=0 {
             cx16.r1 = @(entry_ptr)
             if cx16.r1 != symbols_dt.dt_ubyte and cx16.r1 != symbols_dt.dt_uword {
@@ -282,7 +283,7 @@ symbols {
         entrybufferptr++
         pokew(entrybufferptr, value)
         entrybufferptr += 2
-        entrybufferptr += string.copy(symbol, entrybufferptr) + 1
+        entrybufferptr += strings.copy(symbol, entrybufferptr) + 1
 
         bucket_entry_counts[hash]++
         num_entries++
@@ -299,7 +300,7 @@ symbols {
         ubyte ix
         for ix in 0 to bucketcount-1 {
             uword entryptr = peekw(bucketptrs + ix*2)
-            if string.compare(symbol, entryptr+3)==0
+            if strings.compare(symbol, entryptr+3)==0
                 return entryptr
         }
         return $0000

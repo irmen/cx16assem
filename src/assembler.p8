@@ -1,6 +1,6 @@
 %import textio
 %import diskio
-%import string
+%import strings
 %import conv
 %import asmsymbols
 %import asmoutput
@@ -34,9 +34,9 @@ main {
                 if commandline[0] in ['>', ' ', 160] {
                     ; strip away the prompt prefix
                     cx16.r0=&commandline+1
-                    while string.isspace(@(cx16.r0))
+                    while strings.isspace(@(cx16.r0))
                         cx16.r0++
-                    void string.copy(cx16.r0, commandline)
+                    void strings.copy(cx16.r0, commandline)
                     if commandline[0]==0
                         continue
                 }
@@ -119,7 +119,7 @@ main {
 
     sub cli_command_r(uword argptr) -> bool {
         if argptr!=0
-            void string.copy(argptr, diskio.list_filename)
+            void strings.copy(argptr, diskio.list_filename)
         if diskio.list_filename[0]!=0 {
             run_file(diskio.list_filename)
             return true
@@ -253,7 +253,7 @@ main {
             sys.enable_caseswitch()     ; workaround for character set issue in X16Edit 0.7.1
             ubyte filename_length = 0
             if filename!=0
-                filename_length = string.length(filename)
+                filename_length = strings.length(filename)
             ubyte old_bank = cx16.getrombank()
             cx16.rombank(x16edit_bank)
             cx16.x16edit_loadfile_options(1, 255, filename,
@@ -351,7 +351,7 @@ main {
         time_phase2 = cbm.RDTIM16()
 
         if success {
-            void string.copy(filename, previous_successful_filename)
+            void strings.copy(filename, previous_successful_filename)
             print_summary(cx16.r15, output.pc_min, output.pc_max)
             save_program(output.pc_min, output.pc_max, ask_for_output_filename)
             txt.nl()
@@ -395,14 +395,14 @@ main {
             output_filename = main.start.commandline
         } else {
             ; choose automatic output filename based on the source file name
-            string.right(previous_successful_filename, 4, output_filename)
-            void string.lower(output_filename)
+            strings.right(previous_successful_filename, 4, output_filename)
+            void strings.lower(output_filename)
             if output_filename==".asm" or output_filename==".txt" or output_filename==".src" {
                 output_filename = previous_successful_filename
-                output_filename[string.length(output_filename) - 4] = 0  ; strip off the existing suffix
+                output_filename[strings.length(output_filename) - 4] = 0  ; strip off the existing suffix
             } else {
                 output_filename = previous_successful_filename
-                void string.copy(".prg", &output_filename + string.length(output_filename))  ; just add .prg suffix to not overwrite
+                void strings.copy(".prg", &output_filename + strings.length(output_filename))  ; just add .prg suffix to not overwrite
             }
         }
         txt.print("\nsaving...")
@@ -554,8 +554,8 @@ parser {
             return false
         }
 
-        ;void string.lower(word_addrs[0])
-        ;void string.lower(word_addrs[2])
+        ;void strings.lower(word_addrs[0])
+        ;void strings.lower(word_addrs[2])
 
         ; TODO don't use parse_operand, but parse expression
         if expression.parse_operand(word_addrs[2], phase) != instructions.am_Invalid {
@@ -577,11 +577,11 @@ parser {
         uword @zp label_ptr = 0
         uword @zp instr_ptr = 0
         uword @zp operand_ptr = 0
-        bool starts_with_whitespace = string.isspace(input_line[0])
+        bool starts_with_whitespace = strings.isspace(input_line[0])
 
-;        void string.lower(word_addrs[0])
-;        void string.lower(word_addrs[1])
-;        void string.lower(word_addrs[2])
+;        void strings.lower(word_addrs[0])
+;        void strings.lower(word_addrs[1])
+;        void strings.lower(word_addrs[2])
 
         if word_addrs[2]!=0 {
             label_ptr = word_addrs[0]
@@ -603,7 +603,7 @@ parser {
         }
 
         if label_ptr!=0 {
-            uword lastlabelchar = label_ptr + string.length(label_ptr)-1
+            uword lastlabelchar = label_ptr + strings.length(label_ptr)-1
             if @(lastlabelchar) == ':'
                 @(lastlabelchar) = 0
             if instructions.match(label_ptr)!=0 {
@@ -624,9 +624,9 @@ parser {
     sub assemble_instruction(uword instr_ptr, uword operand_ptr) -> bool {
         ; normalize the character set of the instruction mnemonic, otherwise it can't always match
         cx16.r0 = instr_ptr
-        @(cx16.r0) = string.lowerchar(@(cx16.r0))
-        @(cx16.r0+1) = string.lowerchar(@(cx16.r0+1))
-        @(cx16.r0+2) = string.lowerchar(@(cx16.r0+2))
+        @(cx16.r0) = strings.lowerchar(@(cx16.r0))
+        @(cx16.r0+1) = strings.lowerchar(@(cx16.r0+1))
+        @(cx16.r0+2) = strings.lowerchar(@(cx16.r0+2))
         uword @zp instruction_info_ptr = instructions.match(cx16.r0)
         if instruction_info_ptr!=0 {
             ; we got a mnemonic match, now process the operand (and its value, if applicable, into cx16.r15)
@@ -720,23 +720,23 @@ parser {
     }
 
     sub process_assembler_directive(uword directive, uword operand) -> bool {
-        ; void string.lower(directive)
+        ; void strings.lower(directive)
         if operand!=0 {
-            if string.compare(directive, ".byte")==0
+            if strings.compare(directive, ".byte")==0
                 return proces_directive_byte(operand)
-            if string.compare(directive, ".word")==0
+            if strings.compare(directive, ".word")==0
                 return proces_directive_word(operand)
-            if string.compare(directive, ".str")==0
+            if strings.compare(directive, ".str")==0
                 return proces_directive_str(operand, false)
-            if string.compare(directive, ".strz")==0
+            if strings.compare(directive, ".strz")==0
                 return proces_directive_str(operand, true)
-            if string.compare(directive, ".include")==0
+            if strings.compare(directive, ".include")==0
                 return process_directive_include(operand, false)
-            if string.compare(directive, ".incbin")==0
+            if strings.compare(directive, ".incbin")==0
                 return process_directive_include(operand, true)
-            if string.compare(directive, ".org")==0
+            if strings.compare(directive, ".org")==0
                 return process_directive_org(operand)
-            if string.compare(directive, ".fill")==0
+            if strings.compare(directive, ".fill")==0
                 return process_directive_fill(operand)
         }
 
@@ -1004,7 +1004,7 @@ _is_2_entry
 
     sub str_trimleft(uword st) -> uword {
         cx16.r0 = st
-        while string.isspace(@(cx16.r0))
+        while strings.isspace(@(cx16.r0))
             cx16.r0++
         return cx16.r0
     }
@@ -1022,7 +1022,7 @@ _is_2_entry
             word_addrs[0] = trimmed
             word_count=2
             repeat {
-                if string.isspace(trimmed[char_idx]) {
+                if strings.isspace(trimmed[char_idx]) {
                     trimmed += char_idx
                     @(trimmed) = 0
                     trimmed++
@@ -1076,7 +1076,7 @@ _is_2_entry
     }
 
     sub preprocess_assignment_spacing() {
-        void string.find(input_line, '=')
+        void strings.find(input_line, '=')
         if_cc
             return
 
@@ -1097,6 +1097,6 @@ _is_2_entry
             dest++
         }
         @(dest)=0
-        void string.copy(input_line2, src)
+        void strings.copy(input_line2, src)
     }
 }

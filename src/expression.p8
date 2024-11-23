@@ -237,7 +237,7 @@ expression {
             beq  _yes
             cmp  #'@'
             beq  _yes
-            jsr  string.lowerchar
+            jsr  strings.lowerchar
             cmp  #'a'
             bcc  _no
             cmp  #'z'+1

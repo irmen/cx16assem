@@ -1,6 +1,6 @@
 %import textio
 %import diskio
-%import string
+%import strings
 %import errors
 
 ; Routines to load source files into memory,
@@ -275,7 +275,7 @@ fileregistry {
         }
 
         file_name_ptrs[num_files] = names_ptr
-        names_ptr += string.copy(filename, names_ptr) + 1
+        names_ptr += strings.copy(filename, names_ptr) + 1
         file_start_addresses[num_files] = next_load_address
         file_start_banks[num_files] = next_load_bank
         next_load_bank = last_bank
@@ -310,7 +310,7 @@ fileregistry {
             return $ff
         ubyte i
         for i in 0 to num_files-1 {
-            if string.compare(filename, file_name_ptrs[i])==0
+            if strings.compare(filename, file_name_ptrs[i])==0
                 return i
         }
         return $ff
