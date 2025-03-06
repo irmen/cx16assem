@@ -18,7 +18,7 @@ the Prog8 compiler `prog8c` to finally compile the assembler, but
 it's easier to use the supplied Makefile: 
 
 Just type `make` to compile the assembler.
-Type `make emu` to compile and immediately start the assembler in the Commander X16 emulator.
+Type `make run` to compile and immediately start the assembler in the Commander X16 emulator.
 
 
 ## Usage
@@ -81,7 +81,7 @@ the expected result binary (crossassembled by 64tass).
   More complex expressions (including parentheses) are a *lot* of work (require having an expression evaluation stack).
   (although https://en.wikipedia.org/wiki/Shunting_yard_algorithm ?)
   
-- relative labels (+/++/-/--) or rather local labels @1 @2 etc (ca65 style)
+- local labels @1 @2 etc (ca65 style, with some prefix character like '@' or '.' that makes them locally scoped to the last preceding global label)
 
 - better error descriptions
   
